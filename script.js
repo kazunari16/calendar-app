@@ -12,6 +12,9 @@ const DEFAULT_CATEGORIES = [
   { id: createId(), name: "副業用", color: "#059669", template: DEFAULT_TEMPLATE }
 ];
 
+const CARDIO_BODY_PART = "有酸素運動";
+const CARDIO_EXERCISES = ["トレッドミル", "ステアクライマー", "アップライトバイク", "リカンベントバイク", "クロストレーナー"];
+
 const DEFAULT_WORKOUT_MASTERS = {
   "肩": ["ショルダープレス", "サイドレイズ"],
   "腕": ["ダンベルカール", "トライセプスエクステンション"],
@@ -19,7 +22,8 @@ const DEFAULT_WORKOUT_MASTERS = {
   "腹筋": ["クランチ", "レッグレイズ"],
   "背中": ["ラットプルダウン", "デッドリフト"],
   "お尻": ["ヒップスラスト", "ブルガリアンスクワット"],
-  "脚": ["スクワット", "レッグプレス"]
+  "脚": ["スクワット", "レッグプレス"],
+  [CARDIO_BODY_PART]: CARDIO_EXERCISES
 };
 
 const DEFAULT_WORKOUT_UI_SETTINGS = {
@@ -41,7 +45,8 @@ const WORKOUT_PART_REPAIRS = {
   "閻ｹ遲・": "腹筋",
   "閭御ｸｭ": "背中",
   "縺雁ｰｻ": "お尻",
-  "閼・": "脚"
+  "閼・": "脚",
+  "譛臥┌驟ｸ邏驕句虚": CARDIO_BODY_PART
 };
 
 const WORKOUT_EXERCISE_REPAIRS = {
@@ -161,6 +166,9 @@ const workoutMainBtn = $("workoutMainBtn");
 const workoutResetBtn = $("workoutResetBtn");
 const loadPreviousWorkoutBtn = $("loadPreviousWorkoutBtn");
 const setFormsWrap = $("setFormsWrap");
+const cardioFormsWrap = $("cardioFormsWrap");
+const workoutTimerActionPanel = $("workoutTimerActionPanel");
+const workoutDetailSection = $("workoutDetailSection");
 const workoutLogs = $("workoutLogs");
 const saveWorkoutBtn = $("saveWorkoutBtn");
 
@@ -774,7 +782,7 @@ function switchView(viewName) {
     workoutDateInput.value = selectedDate;
     updateWorkoutInputTargetDateLabel();
     renderWorkoutBodyPartSelect();
-    buildSetForms();
+    updateWorkoutInputMode();
     renderWorkoutLogs();
     renderWorkoutState();
   }
@@ -1159,7 +1167,10 @@ function exportWorkoutCsv() {
       `休憩時間(${setNo}セット)`
     );
   }
+  headers.push("有酸素時間", "距離/段数", "距離単位", "スピード/ペース", "スピード単位", "平均心拍数", "最大心拍数", "有酸素メモ");
   const rows = items.map(item => {
+    const cardio = item.cardioData || {};
+    const config = getCardioMetricConfig(item.exercise);
     const row = {
       "日付": item.dateKey,
       "部位": item.bodyPart || "",
@@ -1176,6 +1187,14 @@ function exportWorkoutCsv() {
       row[`実施時間(${setNo}セット)`] = log.workSec != null && log.workSec !== "" ? formatSeconds(log.workSec) : "";
       row[`休憩時間(${setNo}セット)`] = log.restSec != null && log.restSec !== "" ? formatSeconds(log.restSec) : "";
     }
+    row["有酸素時間"] = isCardioSession(item) ? formatSeconds(cardio.durationSec || 0) : "";
+    row["距離/段数"] = isCardioSession(item) ? (cardio.distance || "") : "";
+    row["距離単位"] = isCardioSession(item) ? (cardio.distanceUnit || config.distanceUnit) : "";
+    row["スピード/ペース"] = isCardioSession(item) ? (cardio.speed || "") : "";
+    row["スピード単位"] = isCardioSession(item) ? (cardio.speedUnit || config.speedUnit) : "";
+    row["平均心拍数"] = isCardioSession(item) ? (cardio.avgHeartRate || "") : "";
+    row["最大心拍数"] = isCardioSession(item) ? (cardio.maxHeartRate || "") : "";
+    row["有酸素メモ"] = isCardioSession(item) ? (cardio.memo || item.memo || "") : "";
     return row;
   });
   downloadTextFile(`workout-${getCsvDateStamp()}.csv`, toCsv(headers, rows));
@@ -1233,6 +1252,17 @@ function importWorkoutCsv(text) {
     if (!masters[bodyPart]) masters[bodyPart] = [];
     if (!masters[bodyPart].includes(exercise)) masters[bodyPart].push(exercise);
     const setLogs = row.setLogs ? parseJsonArray(row.setLogs) : [];
+    const isCardioRow = bodyPart === CARDIO_BODY_PART ||
+      !!row["有酸素時間"] ||
+      !!row["距離/段数"] ||
+      !!row["スピード/ペース"] ||
+      !!row["平均心拍数"] ||
+      !!row["最大心拍数"] ||
+      !!row["有酸素メモ"];
+    if (isCardioRow) {
+      if (!masters[CARDIO_BODY_PART]) masters[CARDIO_BODY_PART] = [];
+      if (!masters[CARDIO_BODY_PART].includes(exercise)) masters[CARDIO_BODY_PART].push(exercise);
+    }
     if (!setLogs.length) {
       for (let setNo = 1; ; setNo++) {
         const weight = row[`重量(${setNo}セット)`];
@@ -1256,7 +1286,27 @@ function importWorkoutCsv(text) {
       }
     }
 
-    const item = {
+    const config = getCardioMetricConfig(exercise);
+    const item = isCardioRow ? {
+      id: row.id || createId(),
+      type: "cardio",
+      bodyPart: CARDIO_BODY_PART,
+      exercise,
+      targetSets: 0,
+      memo: row["有酸素メモ"] || row.memo || "",
+      createdAt: Number(row.createdAt || Date.now()),
+      cardioData: {
+        durationSec: parseCsvDuration(row["有酸素時間"] || row.cardioDurationSec),
+        distance: normalizeCardioNumber(row["距離/段数"] || row.cardioDistance, (row["距離単位"] || config.distanceUnit) === "段" ? 0 : 1),
+        distanceUnit: row["距離単位"] || config.distanceUnit,
+        speed: normalizeCardioNumber(row["スピード/ペース"] || row.cardioSpeed, (row["スピード単位"] || config.speedUnit) === "段/分" ? 0 : 1),
+        speedUnit: row["スピード単位"] || config.speedUnit,
+        avgHeartRate: normalizeCardioNumber(row["平均心拍数"] || row.avgHeartRate, 0),
+        maxHeartRate: normalizeCardioNumber(row["最大心拍数"] || row.maxHeartRate, 0),
+        memo: row["有酸素メモ"] || row.memo || ""
+      },
+      setLogs: []
+    } : {
       id: row.id || createId(),
       bodyPart,
       exercise,
@@ -1622,6 +1672,163 @@ function renderWorkoutExerciseSelect(selected = "") {
   if (selected && exercises.includes(selected)) exerciseSelect.value = selected;
 }
 
+function isCardioBodyPart(bodyPart = bodyPartSelect?.value) {
+  return bodyPart === CARDIO_BODY_PART;
+}
+
+function isCardioSession(item = {}) {
+  return item.type === "cardio" || item.bodyPart === CARDIO_BODY_PART || !!item.cardioData;
+}
+
+function getCardioMetricConfig(exercise = "") {
+  if (exercise === "ステアクライマー") {
+    return {
+      distanceLabel: "段数",
+      distanceUnit: "段",
+      speedLabel: "ペース",
+      speedUnit: "段/分",
+      distanceStep: "1",
+      speedStep: "1",
+      distancePlaceholder: "500",
+      speedPlaceholder: "60"
+    };
+  }
+
+  return {
+    distanceLabel: "距離",
+    distanceUnit: "km",
+    speedLabel: "スピード",
+    speedUnit: "km/h",
+    distanceStep: "0.1",
+    speedStep: "0.1",
+    distancePlaceholder: "3.0",
+    speedPlaceholder: "8.5"
+  };
+}
+
+function normalizeCardioNumber(value, decimals = 1) {
+  if (value == null || value === "") return "";
+  const number = Number(value);
+  if (!Number.isFinite(number) || number < 0) return "";
+  return decimals === 0 ? String(Math.floor(number)) : number.toFixed(decimals);
+}
+
+function getCardioFormData(scope = cardioFormsWrap) {
+  const form = scope?.querySelector("[data-cardio-form]");
+  if (!form) {
+    const config = getCardioMetricConfig(exerciseSelect.value);
+    return {
+      durationSec: 0,
+      distance: "",
+      distanceUnit: config.distanceUnit,
+      speed: "",
+      speedUnit: config.speedUnit,
+      avgHeartRate: "",
+      maxHeartRate: "",
+      memo: ""
+    };
+  }
+
+  const config = getCardioMetricConfig(exerciseSelect.value);
+  return {
+    durationSec: Math.max(0, Math.floor(Number(form.querySelector("[data-cardio-duration-sec]")?.value || 0))),
+    distance: normalizeCardioNumber(form.querySelector("[data-cardio-distance]")?.value, config.distanceStep === "1" ? 0 : 1),
+    distanceUnit: config.distanceUnit,
+    speed: normalizeCardioNumber(form.querySelector("[data-cardio-speed]")?.value, config.speedStep === "1" ? 0 : 1),
+    speedUnit: config.speedUnit,
+    avgHeartRate: normalizeCardioNumber(form.querySelector("[data-cardio-avg-hr]")?.value, 0),
+    maxHeartRate: normalizeCardioNumber(form.querySelector("[data-cardio-max-hr]")?.value, 0),
+    memo: form.querySelector("[data-cardio-memo]")?.value || ""
+  };
+}
+
+function buildCardioForm(preset = null) {
+  if (!cardioFormsWrap) return;
+  const exercise = exerciseSelect.value;
+  const config = getCardioMetricConfig(exercise);
+  const current = preset || getCardioFormData();
+  const durationSec = Math.max(0, Math.floor(Number(current.durationSec || 0)));
+  const distanceValue = normalizeCardioNumber(current.distance, config.distanceStep === "1" ? 0 : 1);
+  const speedValue = normalizeCardioNumber(current.speed, config.speedStep === "1" ? 0 : 1);
+
+  cardioFormsWrap.innerHTML = `
+    <article class="set-form-item cardio-form-card" data-cardio-form>
+      <div class="cardio-form-head">
+        <div class="set-now-title">有酸素記録</div>
+        <div class="cardio-form-sub">${escapeHtml(exercise || CARDIO_BODY_PART)}</div>
+      </div>
+      <div class="cardio-grid">
+        <label class="cardio-field cardio-duration-field">
+          <span>時間</span>
+          <button class="roll-field-btn duration-roll-btn" type="button" data-cardio-duration-roll>${formatSeconds(durationSec)}</button>
+          <input type="hidden" data-cardio-duration-sec value="${escapeAttr(durationSec)}" />
+        </label>
+        <label class="cardio-field">
+          <span>${escapeHtml(config.distanceLabel)}</span>
+          <div class="unit-input-wrap">
+            <input type="number" inputmode="decimal" min="0" step="${escapeAttr(config.distanceStep)}" data-cardio-distance value="${escapeAttr(distanceValue)}" placeholder="${escapeAttr(config.distancePlaceholder)}" />
+            <em>${escapeHtml(config.distanceUnit)}</em>
+          </div>
+        </label>
+        <label class="cardio-field">
+          <span>${escapeHtml(config.speedLabel)}</span>
+          <div class="unit-input-wrap">
+            <input type="number" inputmode="decimal" min="0" step="${escapeAttr(config.speedStep)}" data-cardio-speed value="${escapeAttr(speedValue)}" placeholder="${escapeAttr(config.speedPlaceholder)}" />
+            <em>${escapeHtml(config.speedUnit)}</em>
+          </div>
+        </label>
+        <label class="cardio-field">
+          <span>平均心拍</span>
+          <div class="unit-input-wrap">
+            <input type="number" inputmode="numeric" min="0" step="1" data-cardio-avg-hr value="${escapeAttr(normalizeCardioNumber(current.avgHeartRate, 0))}" placeholder="130" />
+            <em>bpm</em>
+          </div>
+        </label>
+        <label class="cardio-field">
+          <span>最大心拍</span>
+          <div class="unit-input-wrap">
+            <input type="number" inputmode="numeric" min="0" step="1" data-cardio-max-hr value="${escapeAttr(normalizeCardioNumber(current.maxHeartRate, 0))}" placeholder="160" />
+            <em>bpm</em>
+          </div>
+        </label>
+      </div>
+      <label class="cardio-field cardio-memo-field">
+        <span>メモ</span>
+        <textarea rows="3" data-cardio-memo placeholder="体感や負荷設定など">${escapeHtml(current.memo || "")}</textarea>
+      </label>
+      <button class="primary-btn cardio-save-btn" type="button" data-save-cardio>保存</button>
+    </article>
+  `;
+
+  const form = cardioFormsWrap.querySelector("[data-cardio-form]");
+  form.querySelector("[data-cardio-duration-roll]").addEventListener("click", () => {
+    const input = form.querySelector("[data-cardio-duration-sec]");
+    const button = form.querySelector("[data-cardio-duration-roll]");
+    openDurationRollPicker("有酸素時間", input.value, value => {
+      input.value = String(value);
+      button.textContent = formatSeconds(value);
+    });
+  });
+  form.querySelector("[data-save-cardio]").addEventListener("click", () => saveWorkoutSession(false));
+}
+
+function updateWorkoutInputMode(presetCardioData = null) {
+  const cardio = isCardioBodyPart();
+  setFormsWrap?.classList.toggle("hidden", cardio);
+  cardioFormsWrap?.classList.toggle("hidden", !cardio);
+  workoutTimerActionPanel?.classList.toggle("hidden", cardio);
+  workoutDetailSection?.classList.toggle("hidden", cardio);
+  loadPreviousWorkoutBtn.textContent = cardio ? "前回有酸素" : "前回記録";
+
+  if (cardio) {
+    buildCardioForm(presetCardioData);
+  } else {
+    buildSetForms();
+    renderWorkoutLogs();
+    renderWorkoutState();
+  }
+}
+
 function applyWorkoutDefaultsToInputs() {
   const settings = getWorkoutUiSettings();
   setsInput.value = String(settings.defaultSets);
@@ -1670,6 +1877,7 @@ function ensureWorkoutDraftsSize() {
 }
 
 function saveCurrentSetDraft() {
+  if (isCardioBodyPart()) return;
   const box = setFormsWrap.querySelector("[data-set-form]");
   if (!box) return;
   const setNo = Number(box.dataset.setForm);
@@ -1856,6 +2064,11 @@ function renderWorkoutLogs() {
 }
 
 function workoutMainAction() {
+  if (isCardioBodyPart()) {
+    saveWorkoutSession(false);
+    return;
+  }
+
   const targetSets = getTargetSets();
   const currentSetNo = getActiveWorkoutSetNo();
   const setData = getCurrentSetFormData(currentSetNo);
@@ -1929,17 +2142,53 @@ function workoutMainAction() {
 }
 
 function saveWorkoutSession(isAutoSave = false) {
-  if (!workoutState.setLogs.length) {
-    if (!isAutoSave) alert("保存できる記録がありません。");
-    return;
-  }
-
   const dateKey = workoutDateInput.value || selectedDate;
   const bodyPart = bodyPartSelect.value;
   const exercise = exerciseSelect.value;
 
   if (!bodyPart || !exercise) {
     alert("部位とメニューを選択してください。");
+    return;
+  }
+
+  if (isCardioBodyPart(bodyPart)) {
+    if (isAutoSave) return;
+    const cardioData = getCardioFormData();
+    const hasCardioRecord = Number(cardioData.durationSec || 0) > 0 ||
+      Number(cardioData.distance || 0) > 0 ||
+      Number(cardioData.speed || 0) > 0 ||
+      Number(cardioData.avgHeartRate || 0) > 0 ||
+      Number(cardioData.maxHeartRate || 0) > 0 ||
+      !!cardioData.memo.trim();
+
+    if (!hasCardioRecord) {
+      alert("有酸素運動の記録を入力してください。");
+      return;
+    }
+
+    const sessions = getWorkoutSessions();
+    if (!sessions[dateKey]) sessions[dateKey] = [];
+    sessions[dateKey].push({
+      id: createId(),
+      type: "cardio",
+      bodyPart,
+      exercise,
+      targetSets: 0,
+      memo: cardioData.memo || "",
+      cardioData,
+      setLogs: [],
+      createdAt: Date.now()
+    });
+
+    saveWorkoutSessions(sessions);
+    setWorkoutDate(dateKey);
+    switchView("workout");
+    alert("有酸素運動の記録を保存しました。");
+    return;
+  }
+
+  if (!workoutState.setLogs.length) {
+    if (!isAutoSave) alert("保存できる記録がありません。");
     return;
   }
 
@@ -1995,10 +2244,13 @@ function formatMonthDay(dateObj) {
 
 function summarizeWorkoutItems(items) {
   const setLogs = items.flatMap(item => item.setLogs || []);
+  const cardioWork = items.reduce((sum, item) => (
+    sum + (isCardioSession(item) ? Number(item.cardioData?.durationSec || 0) : 0)
+  ), 0);
   return {
     totalVolume: items.reduce((sum, item) => sum + calcWorkoutTotalVolume(item.setLogs || []), 0),
     totalSets: setLogs.length,
-    totalWork: setLogs.reduce((sum, log) => sum + Number(log.workSec || 0), 0)
+    totalWork: setLogs.reduce((sum, log) => sum + Number(log.workSec || 0), 0) + cardioWork
   };
 }
 
@@ -2097,6 +2349,50 @@ function renderWorkoutDashboard() {
   ].join("");
 }
 
+function formatCardioValue(value, unit = "") {
+  return value !== "" && value != null ? `${escapeHtml(value)}${escapeHtml(unit)}` : "-";
+}
+
+function renderCardioHistoryItem(item) {
+  const cardio = item.cardioData || {};
+  const config = getCardioMetricConfig(item.exercise);
+  const distanceUnit = cardio.distanceUnit || config.distanceUnit;
+  const speedUnit = cardio.speedUnit || config.speedUnit;
+  const durationText = formatSeconds(cardio.durationSec || 0);
+  const distanceText = formatCardioValue(cardio.distance, distanceUnit);
+  const speedText = formatCardioValue(cardio.speed, speedUnit);
+  const avgHrText = formatCardioValue(cardio.avgHeartRate, "bpm");
+  const maxHrText = formatCardioValue(cardio.maxHeartRate, "bpm");
+
+  return `
+    <details class="workout-history-simple">
+      <summary class="workout-history-summary">
+        <div class="workout-history-summary-main">
+          <div class="workout-history-simple-title">${escapeHtml(item.bodyPart)} / ${escapeHtml(item.exercise)}</div>
+          <div class="workout-history-simple-body">
+            時間: ${durationText} / ${escapeHtml(config.distanceLabel)}: ${distanceText} / ${escapeHtml(config.speedLabel)}: ${speedText}
+          </div>
+          <div class="workout-history-simple-body">心拍: 平均 ${avgHrText} / 最大 ${maxHrText}</div>
+        </div>
+      </summary>
+      <div class="workout-history-detail-wrap">
+        <div class="workout-history-detail-row">
+          <div class="workout-history-detail-title">有酸素内容</div>
+          <div class="workout-history-detail-body">
+            時間: ${durationText} / ${escapeHtml(config.distanceLabel)}: ${distanceText} / ${escapeHtml(config.speedLabel)}: ${speedText}<br>
+            心拍: 平均 ${avgHrText} / 最大 ${maxHrText}
+          </div>
+          ${cardio.memo ? `<div class="workout-history-detail-body">メモ: ${escapeHtml(cardio.memo)}</div>` : ""}
+        </div>
+        <div class="workout-history-actions">
+          <button class="edit-workout-btn" type="button" data-edit-workout="${escapeAttr(item.id)}">編集</button>
+          <button class="close-x-btn" type="button" aria-label="削除" data-delete-workout="${escapeAttr(item.id)}">×</button>
+        </div>
+      </div>
+    </details>
+  `;
+}
+
 function renderWorkoutHistory() {
   const dateKey = workoutDateInput.value || selectedDate;
   const sessions = getWorkoutSessions();
@@ -2110,6 +2406,8 @@ function renderWorkoutHistory() {
   }
 
   workoutHistoryList.innerHTML = items.map(item => {
+    if (isCardioSession(item)) return renderCardioHistoryItem(item);
+
     const setLogs = item.setLogs || [];
     const totalWork = setLogs.reduce((sum, log) => sum + Number(log.workSec || 0), 0);
     const totalRest = setLogs.reduce((sum, log) => sum + Number(log.restSec || 0), 0);
@@ -2202,6 +2500,11 @@ function loadPreviousWorkout() {
     return;
   }
 
+  if (isCardioSession(latest)) {
+    updateWorkoutInputMode(latest.cardioData || {});
+    return;
+  }
+
   const sourceLogs = latest.setLogs || [];
   const sourceSetCount = sourceLogs.length || latest.targetSets || 1;
   setsInput.value = String(sourceSetCount);
@@ -2246,6 +2549,23 @@ function renderWorkoutEditExerciseSelect(selected = "") {
 
 function getWorkoutEditDraftFromForm() {
   const session = workoutEditState?.session || {};
+  if (isCardioBodyPart(workoutEditBodyPartSelect.value)) {
+    const cardioData = getWorkoutEditCardioDataFromForm();
+    return {
+      dateKey: workoutEditDateInput.value || workoutEditState?.dateKey || selectedDate,
+      session: {
+        ...session,
+        type: "cardio",
+        bodyPart: workoutEditBodyPartSelect.value,
+        exercise: workoutEditExerciseSelect.value,
+        targetSets: 0,
+        memo: cardioData.memo || "",
+        cardioData,
+        setLogs: []
+      }
+    };
+  }
+
   const setLogs = [...workoutEditSetList.querySelectorAll("[data-edit-set-index]")].map((card, index) => {
     const weight = formatWeightRollValue(card.querySelector("[data-edit-weight]").value);
     const reps = formatRepsRollValue(card.querySelector("[data-edit-reps]").value);
@@ -2267,6 +2587,8 @@ function getWorkoutEditDraftFromForm() {
       ...session,
       bodyPart: workoutEditBodyPartSelect.value,
       exercise: workoutEditExerciseSelect.value,
+      type: "strength",
+      cardioData: undefined,
       targetSets: setLogs.length,
       memo: "",
       setLogs
@@ -2274,8 +2596,109 @@ function getWorkoutEditDraftFromForm() {
   };
 }
 
+function getWorkoutEditCardioDataFromForm() {
+  const form = workoutEditSetList.querySelector("[data-edit-cardio-form]");
+  const config = getCardioMetricConfig(workoutEditExerciseSelect.value);
+  if (!form) {
+    return {
+      durationSec: 0,
+      distance: "",
+      distanceUnit: config.distanceUnit,
+      speed: "",
+      speedUnit: config.speedUnit,
+      avgHeartRate: "",
+      maxHeartRate: "",
+      memo: ""
+    };
+  }
+
+  return {
+    durationSec: Math.max(0, Math.floor(Number(form.querySelector("[data-edit-cardio-duration-sec]")?.value || 0))),
+    distance: normalizeCardioNumber(form.querySelector("[data-edit-cardio-distance]")?.value, config.distanceStep === "1" ? 0 : 1),
+    distanceUnit: config.distanceUnit,
+    speed: normalizeCardioNumber(form.querySelector("[data-edit-cardio-speed]")?.value, config.speedStep === "1" ? 0 : 1),
+    speedUnit: config.speedUnit,
+    avgHeartRate: normalizeCardioNumber(form.querySelector("[data-edit-cardio-avg-hr]")?.value, 0),
+    maxHeartRate: normalizeCardioNumber(form.querySelector("[data-edit-cardio-max-hr]")?.value, 0),
+    memo: form.querySelector("[data-edit-cardio-memo]")?.value || ""
+  };
+}
+
+function renderWorkoutEditCardioForm(preset = null) {
+  const config = getCardioMetricConfig(workoutEditExerciseSelect.value);
+  const current = preset || getWorkoutEditCardioDataFromForm();
+  const durationSec = Math.max(0, Math.floor(Number(current.durationSec || 0)));
+  const distanceValue = normalizeCardioNumber(current.distance, config.distanceStep === "1" ? 0 : 1);
+  const speedValue = normalizeCardioNumber(current.speed, config.speedStep === "1" ? 0 : 1);
+
+  workoutEditSetList.innerHTML = `
+    <article class="edit-set-card edit-cardio-card" data-edit-cardio-form>
+      <div class="edit-cardio-head">
+        <span>有酸素記録</span>
+        <strong>${escapeHtml(workoutEditExerciseSelect.value || CARDIO_BODY_PART)}</strong>
+      </div>
+      <div class="edit-cardio-grid">
+        <label class="edit-field">
+          <span>時間</span>
+          <button class="roll-field-btn duration-roll-btn" type="button" data-edit-cardio-duration-roll>${formatSeconds(durationSec)}</button>
+          <input type="hidden" data-edit-cardio-duration-sec value="${escapeAttr(durationSec)}" />
+        </label>
+        <label class="edit-field">
+          <span>${escapeHtml(config.distanceLabel)}</span>
+          <div class="unit-input-wrap">
+            <input type="number" inputmode="decimal" min="0" step="${escapeAttr(config.distanceStep)}" data-edit-cardio-distance value="${escapeAttr(distanceValue)}" placeholder="${escapeAttr(config.distancePlaceholder)}" />
+            <em>${escapeHtml(config.distanceUnit)}</em>
+          </div>
+        </label>
+        <label class="edit-field">
+          <span>${escapeHtml(config.speedLabel)}</span>
+          <div class="unit-input-wrap">
+            <input type="number" inputmode="decimal" min="0" step="${escapeAttr(config.speedStep)}" data-edit-cardio-speed value="${escapeAttr(speedValue)}" placeholder="${escapeAttr(config.speedPlaceholder)}" />
+            <em>${escapeHtml(config.speedUnit)}</em>
+          </div>
+        </label>
+        <label class="edit-field">
+          <span>平均心拍</span>
+          <div class="unit-input-wrap">
+            <input type="number" inputmode="numeric" min="0" step="1" data-edit-cardio-avg-hr value="${escapeAttr(normalizeCardioNumber(current.avgHeartRate, 0))}" placeholder="130" />
+            <em>bpm</em>
+          </div>
+        </label>
+        <label class="edit-field">
+          <span>最大心拍</span>
+          <div class="unit-input-wrap">
+            <input type="number" inputmode="numeric" min="0" step="1" data-edit-cardio-max-hr value="${escapeAttr(normalizeCardioNumber(current.maxHeartRate, 0))}" placeholder="160" />
+            <em>bpm</em>
+          </div>
+        </label>
+      </div>
+      <label class="edit-field edit-cardio-memo">
+        <span>メモ</span>
+        <input type="text" data-edit-cardio-memo value="${escapeAttr(current.memo || "")}" placeholder="体感や負荷設定など" />
+      </label>
+    </article>
+  `;
+
+  const form = workoutEditSetList.querySelector("[data-edit-cardio-form]");
+  form.querySelector("[data-edit-cardio-duration-roll]").addEventListener("click", () => {
+    const input = form.querySelector("[data-edit-cardio-duration-sec]");
+    const button = form.querySelector("[data-edit-cardio-duration-roll]");
+    openDurationRollPicker("有酸素時間", input.value, value => {
+      input.value = String(value);
+      button.textContent = formatSeconds(value);
+    });
+  });
+}
+
 function renderWorkoutEditSetList() {
   if (!workoutEditState?.session) return;
+  if (isCardioBodyPart(workoutEditBodyPartSelect.value)) {
+    addWorkoutEditSetBtn.classList.add("hidden");
+    renderWorkoutEditCardioForm(workoutEditState.session.cardioData || {});
+    return;
+  }
+
+  addWorkoutEditSetBtn.classList.remove("hidden");
   const setLogs = workoutEditState.session.setLogs?.length
     ? workoutEditState.session.setLogs
     : [{ setNo: 1, weight: "", reps: "", assist: false, workSec: 0, restSec: 0, memo: "", rm: "" }];
@@ -2431,18 +2854,38 @@ function saveWorkoutEdit() {
     alert("部位とメニューを選択してください。");
     return;
   }
-  if (!session.setLogs.length) {
+  if (isCardioSession(session)) {
+    const cardioData = session.cardioData || {};
+    const hasCardioRecord = Number(cardioData.durationSec || 0) > 0 ||
+      Number(cardioData.distance || 0) > 0 ||
+      Number(cardioData.speed || 0) > 0 ||
+      Number(cardioData.avgHeartRate || 0) > 0 ||
+      Number(cardioData.maxHeartRate || 0) > 0 ||
+      !!String(cardioData.memo || "").trim();
+    if (!hasCardioRecord) {
+      alert("有酸素運動の記録を入力してください。");
+      return;
+    }
+  } else if (!session.setLogs.length) {
     alert("セットを1つ以上入力してください。");
     return;
   }
 
   session.id = workoutEditState.sessionId;
   session.createdAt = session.createdAt || Date.now();
-  session.setLogs = session.setLogs.map((log, index) => ({
-    ...log,
-    setNo: index + 1,
-    rm: calcEstimated1RM(log.weight, log.reps)
-  }));
+  if (isCardioSession(session)) {
+    session.type = "cardio";
+    session.setLogs = [];
+    session.targetSets = 0;
+  } else {
+    session.setLogs = session.setLogs.map((log, index) => ({
+      ...log,
+      setNo: index + 1,
+      rm: calcEstimated1RM(log.weight, log.reps)
+    }));
+    delete session.cardioData;
+    if (session.type === "cardio") delete session.type;
+  }
 
   const sessions = getWorkoutSessions();
   const oldDateKey = workoutEditState.dateKey;
@@ -2624,6 +3067,12 @@ function collectWorkoutStats(days) {
     if (!map.has(dateKey)) return;
     (items || []).forEach(item => {
       if (item.bodyPart !== bodyPart || item.exercise !== exercise) return;
+      if (isCardioSession(item)) {
+        const cardio = item.cardioData || {};
+        const cardioValue = Number(cardio.distance || 0) || (Number(cardio.durationSec || 0) / 60);
+        map.set(dateKey, Math.max(map.get(dateKey), cardioValue));
+        return;
+      }
       const topRm = Math.max(...(item.setLogs || []).map(log => Number(log.rm || 0)), 0);
       const volume = calcWorkoutTotalVolume(item.setLogs || []);
       map.set(dateKey, Math.max(map.get(dateKey), topRm || volume));
@@ -2804,13 +3253,18 @@ function bindEvents() {
   bodyPartSelect.addEventListener("change", () => {
     saveCurrentSetDraft();
     renderWorkoutExerciseSelect();
+    resetWorkoutState();
+    updateWorkoutInputMode();
   });
-  exerciseSelect.addEventListener("change", saveCurrentSetDraft);
+  exerciseSelect.addEventListener("change", () => {
+    saveCurrentSetDraft();
+    updateWorkoutInputMode(getCardioFormData());
+  });
   workoutMainBtn.addEventListener("click", workoutMainAction);
   workoutResetBtn.addEventListener("click", () => {
     applyWorkoutDefaultsToInputs();
     resetWorkoutState();
-    buildSetForms();
+    updateWorkoutInputMode();
   });
   saveWorkoutBtn.addEventListener("click", () => saveWorkoutSession(false));
   loadPreviousWorkoutBtn.addEventListener("click", loadPreviousWorkout);
@@ -2820,7 +3274,17 @@ function bindEvents() {
     if (workoutEditDatePickerBtn.value) setWorkoutEditDateValue(workoutEditDatePickerBtn.value);
   });
   workoutEditDatePickerBtn.addEventListener("input", () => normalizeDateYearInput(workoutEditDatePickerBtn));
-  workoutEditBodyPartSelect.addEventListener("change", () => renderWorkoutEditExerciseSelect());
+  workoutEditBodyPartSelect.addEventListener("change", () => {
+    const draft = getWorkoutEditDraftFromForm();
+    workoutEditState.session = draft.session;
+    renderWorkoutEditExerciseSelect();
+    renderWorkoutEditSetList();
+  });
+  workoutEditExerciseSelect.addEventListener("change", () => {
+    const draft = getWorkoutEditDraftFromForm();
+    workoutEditState.session = draft.session;
+    renderWorkoutEditSetList();
+  });
   addWorkoutEditSetBtn.addEventListener("click", addWorkoutEditSet);
   saveWorkoutEditBtn.addEventListener("click", saveWorkoutEdit);
   rollPickerOverlay.addEventListener("click", event => {
@@ -2872,7 +3336,7 @@ function init() {
   renderWorkoutBodyPartSelect();
   renderWorkoutMiniCalendar();
   renderWorkoutHistory();
-  buildSetForms();
+  updateWorkoutInputMode();
   renderWorkoutLogs();
 
   renderCategorySettingsList();

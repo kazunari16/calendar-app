@@ -2,6 +2,12 @@
   box-sizing: border-box;
 }
 
+html,
+body {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
 :root {
   --bg: #f4f6fb;
   --card: #ffffff;
@@ -28,6 +34,7 @@ body {
 .app-shell {
   width: 100%;
   max-width: 860px;
+  min-width: 0;
   margin: 0 auto;
   padding: 16px 12px 32px;
 }
@@ -143,8 +150,10 @@ body {
 .mini-weekday-row,
 .mini-calendar-grid {
   display: grid;
-  grid-template-columns: repeat(7, 1fr);
+  grid-template-columns: repeat(7, minmax(0, 1fr));
   gap: 6px;
+  width: 100%;
+  min-width: 0;
 }
 
 .weekday-row,
@@ -164,6 +173,8 @@ body {
 .day-cell,
 .mini-day-cell {
   position: relative;
+  width: 100%;
+  min-width: 0;
   min-height: 58px;
   border: 1px solid var(--line);
   border-radius: 12px;
@@ -319,6 +330,8 @@ input,
 select,
 textarea {
   width: 100%;
+  min-width: 0;
+  max-width: 100%;
   border: 1px solid var(--line);
   border-radius: 12px;
   background: #fff;
@@ -2367,6 +2380,87 @@ body {
   font-size: 44px;
 }
 
+.cardio-form-card {
+  border-color: #303746;
+  background:
+    linear-gradient(180deg, rgba(249, 115, 22, 0.10), rgba(15, 20, 29, 0.92)),
+    #151a24;
+  color: #f8fafc;
+}
+
+.cardio-form-head,
+.edit-cardio-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.cardio-form-sub,
+.edit-cardio-head strong {
+  color: #fed7aa;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.cardio-grid,
+.edit-cardio-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.cardio-field,
+.edit-cardio-memo {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.cardio-field span,
+.edit-cardio-head span {
+  color: #f8fafc;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.unit-input-wrap {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+  min-width: 0;
+}
+
+.unit-input-wrap em {
+  color: #f8fafc;
+  font-style: normal;
+  font-size: 13px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.cardio-memo-field {
+  margin-top: 10px;
+}
+
+.cardio-save-btn {
+  margin-top: 12px;
+}
+
+.edit-cardio-card {
+  padding: 12px;
+}
+
+.edit-cardio-head {
+  margin-bottom: 10px;
+}
+
+.edit-cardio-memo {
+  margin-top: 10px;
+}
+
 .edit-workout-btn {
   width: auto;
   min-width: 54px;
@@ -2503,6 +2597,11 @@ body {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .cardio-grid,
+  .edit-cardio-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .workout-edit-meta-grid,
   #view-workout-edit .edit-set-grid,
   #view-workout-edit .edit-time-grid,
@@ -2629,6 +2728,19 @@ body {
 }
 
 @media (max-width: 560px) {
+  #view-workout-input .workout-entry-row-date {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  #view-workout-input .target-date-trigger,
+  #view-workout-input .target-date-input,
+  #view-workout-input .workout-date-change-btn,
+  #view-workout-input .mini-action-btn {
+    width: 100%;
+    min-width: 0;
+  }
+
   #view-workout-edit .workout-edit-meta-grid,
   #view-workout-edit .edit-set-card-compact,
   #view-workout-edit .edit-memo-compact,
@@ -2639,6 +2751,11 @@ body {
 
   #view-workout-edit .edit-compact-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .cardio-grid,
+  .edit-cardio-grid {
+    grid-template-columns: 1fr;
   }
 }
 
