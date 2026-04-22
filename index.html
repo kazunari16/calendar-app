@@ -3,11 +3,11 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>記憶カレンダー</title>
+  <title>記録カレンダー</title>
   <link rel="stylesheet" href="style.css" />
   <link rel="manifest" href="manifest.json" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-title" content="記憶カレンダー" />
+  <meta name="apple-mobile-web-app-title" content="記録カレンダー" />
   <meta name="theme-color" content="#2563eb" />
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
 </head>
@@ -23,11 +23,11 @@
     </header>
 
     <main id="view-calendar" class="view active">
-      <section class="card">
+      <section class="card calendar-planner-card">
         <div class="calendar-header">
-          <button id="prevMonthBtn" class="nav-btn" type="button">＜</button>
-          <div id="monthLabel" class="month-label">2026年4月</div>
-          <button id="nextMonthBtn" class="nav-btn" type="button">＞</button>
+          <button id="prevMonthBtn" class="nav-btn" type="button" aria-label="前の月">‹</button>
+          <div id="monthLabel" class="month-label"></div>
+          <button id="nextMonthBtn" class="nav-btn" type="button" aria-label="次の月">›</button>
         </div>
         <div class="weekday-row">
           <div>日</div><div>月</div><div>火</div><div>水</div><div>木</div><div>金</div><div>土</div>
@@ -35,13 +35,13 @@
         <div id="calendarGrid" class="calendar-grid"></div>
       </section>
 
-      <section class="card">
+      <section class="card calendar-action-card">
         <button id="goInputBtn" class="primary-btn" type="button">入力する</button>
       </section>
 
-      <section class="card">
+      <section class="card timeline-card">
         <div class="list-header">
-          <h2>記録</h2>
+          <h2><span id="selectedDateLabel"></span> の予定</h2>
           <span id="itemCount" class="count-badge">0件</span>
         </div>
         <div id="scheduleList" class="schedule-list">
@@ -55,79 +55,68 @@
         <div class="top-row">
           <button id="backToCalendarFromInputBtn" class="sub-btn" type="button">← 戻る</button>
         </div>
-
         <div class="section-title">記録入力</div>
-
-        <div class="hidden" aria-hidden="true">
-          <div id="inputTargetDateLabel"></div>
-          <button id="toggleInputDatePickerBtn" type="button">日付変更</button>
-          <div id="inputMiniCalendarWrap">
-            <button id="miniPrevMonthBtn" type="button">＜</button>
-            <div id="miniMonthLabel"></div>
-            <button id="miniNextMonthBtn" type="button">＞</button>
-            <div id="miniCalendarGrid"></div>
-          </div>
-        </div>
-
         <div class="form-group">
           <label for="title">タイトル</label>
-          <input id="title" type="text" placeholder="例：日報、会議、投稿ネタ" />
+          <input id="title" type="text" placeholder="例: 日報、会議、投稿ネタ" />
         </div>
-
         <div class="form-group">
           <label for="categorySelect">項目</label>
           <select id="categorySelect"></select>
         </div>
-
         <div class="time-grid">
           <div class="form-group">
             <label for="startDateTime">開始日時</label>
-            <input id="startDateTime" type="datetime-local" />
+            <input id="startDateTime" type="datetime-local" max="9999-12-31T23:59" />
             <button id="setNowStartBtn" class="mini-action-btn" type="button">現在時刻</button>
           </div>
           <div class="form-group">
             <label for="endDateTime">終了日時</label>
-            <input id="endDateTime" type="datetime-local" />
+            <input id="endDateTime" type="datetime-local" max="9999-12-31T23:59" />
             <button id="setNowEndBtn" class="mini-action-btn" type="button">現在時刻</button>
           </div>
         </div>
-
         <div class="form-group">
           <label for="content">内容</label>
-          <textarea id="content" rows="8" placeholder="項目を選ぶとテンプレが入ります。"></textarea>
+          <textarea id="content" rows="8" placeholder="項目を選ぶとテンプレートが入ります。"></textarea>
         </div>
-
-        <div class="form-action-row">
-          <button id="saveRecordBtn" class="primary-btn" type="button">保存する</button>
-          <button id="cancelEditRecordBtn" class="sub-btn hidden" type="button">編集をやめる</button>
-        </div>
+        <button id="saveRecordBtn" class="primary-btn" type="button">保存する</button>
       </section>
     </main>
 
     <main id="view-workout" class="view">
-      <section class="card">
+      <section class="card workout-dashboard-card">
+        <div class="workout-dashboard-head">
+          <div>
+            <div class="workout-eyebrow">SUMMARY</div>
+            <h2>トレーニング状況</h2>
+          </div>
+          <button id="goWorkoutStatsBtn" class="sub-btn workout-stats-link" type="button">成果グラフ</button>
+        </div>
+        <div id="workoutDashboard" class="workout-dashboard-grid"></div>
+      </section>
+
+      <section class="card workout-calendar-card">
         <div class="hidden">
           <button id="backToCalendarFromWorkoutBtn" class="sub-btn" type="button">← 戻る</button>
           <input id="workoutDate" type="date" />
         </div>
-
         <div class="calendar-header">
-          <button id="workoutMiniPrevMonthBtn" class="nav-btn" type="button">＜</button>
-          <div id="workoutMiniMonthLabel" class="month-label">2026年4月</div>
-          <button id="workoutMiniNextMonthBtn" class="nav-btn" type="button">＞</button>
+          <button id="workoutMiniPrevMonthBtn" class="nav-btn" type="button" aria-label="前の月">‹</button>
+          <div id="workoutMiniMonthLabel" class="month-label"></div>
+          <button id="workoutMiniNextMonthBtn" class="nav-btn" type="button" aria-label="次の月">›</button>
         </div>
-
         <div class="weekday-row">
           <div>日</div><div>月</div><div>火</div><div>水</div><div>木</div><div>金</div><div>土</div>
         </div>
         <div id="workoutMiniCalendarGrid" class="calendar-grid"></div>
       </section>
 
-      <section class="card">
+      <section class="card workout-action-card">
         <button id="goWorkoutInputBtn" class="primary-btn" type="button">入力する</button>
       </section>
 
-      <section class="card">
+      <section class="card workout-history-card">
         <div class="list-header">
           <h2>この日の筋トレ内容</h2>
           <span id="workoutItemCount" class="count-badge">0件</span>
@@ -137,94 +126,99 @@
         </div>
       </section>
 
-      <section class="card">
+    </main>
+
+    <main id="view-workout-input" class="view">
+      <section class="card workout-input-card">
         <div class="top-row">
-          <button id="goWorkoutStatsBtn" class="sub-btn" type="button">成果グラフへ</button>
+          <button id="backToWorkoutFromInputBtn" class="sub-btn" type="button">← 戻る</button>
+        </div>
+        <div class="section-title">筋トレ記録入力</div>
+        <div class="workout-entry-grid">
+          <div class="workout-entry-row workout-entry-row-date">
+            <div class="workout-entry-label">入力対象日</div>
+            <button id="workoutInputDateChangeBtn" class="target-date-trigger hidden" type="button">
+              <span id="workoutInputTargetDateLabel" class="target-date-label"></span>
+            </button>
+            <input id="workoutDatePickerNative" type="date" class="target-date-input" />
+          </div>
+        </div>
+
+        <div class="hidden workout-hidden-inputs">
+          <input id="setsInput" type="number" min="1" step="1" value="3" />
+          <input id="restSecInput" type="number" min="0" step="1" value="60" />
+        </div>
+        <textarea id="workoutMemo" class="hidden"></textarea>
+
+        <div class="workout-record-panel">
+          <div class="workout-record-fields">
+            <label class="workout-record-field">
+              <span>部位</span>
+              <select id="bodyPartSelect"></select>
+            </label>
+            <label class="workout-record-field">
+              <span>メニュー</span>
+              <select id="exerciseSelect"></select>
+            </label>
+          </div>
+          <button id="loadPreviousWorkoutBtn" class="sub-btn workout-action-btn workout-previous-btn" type="button">前回記録</button>
+        </div>
+
+        <div id="setFormsWrap" class="set-form-list"></div>
+
+        <div class="workout-timer-action-panel">
+          <div class="timer-status-wrap workout-timer-box">
+            <div id="workoutPhaseLabel" class="timer-phase">待機中</div>
+            <div id="workoutTimerDisplay" class="timer-display">00:00</div>
+            <div id="workoutSetStatus" class="timer-sub">セット 1 / 1</div>
+          </div>
+          <div class="workout-action-bar">
+            <button id="workoutMainBtn" class="primary-btn workout-action-btn" type="button">開始</button>
+            <button id="workoutResetBtn" class="sub-btn workout-action-btn" type="button">リセット</button>
+          </div>
+        </div>
+
+        <div class="workout-detail-section">
+          <div class="workout-detail-header">
+            <div class="workout-detail-title">記録詳細</div>
+            <button id="saveWorkoutBtn" class="sub-btn workout-detail-save-btn" type="button">保存</button>
+          </div>
+          <div id="workoutLogs" class="workout-log-list">
+            <p class="empty-text">まだ記録はありません。</p>
+          </div>
         </div>
       </section>
     </main>
 
-    <main id="view-workout-input" class="view">
-      <section class="card">
+    <main id="view-workout-edit" class="view">
+      <section class="card workout-edit-card">
         <div class="top-row">
-          <button id="backToWorkoutFromInputBtn" class="sub-btn" type="button">← 戻る</button>
+          <button id="backToWorkoutFromEditBtn" class="sub-btn" type="button">← 筋トレへ戻る</button>
+        </div>
+        <div class="section-title">筋トレ記録編集</div>
+
+        <div class="workout-edit-meta-grid">
+          <label class="edit-field">
+            <span>日付</span>
+            <input id="workoutEditDatePickerBtn" class="target-date-input" type="date" />
+            <span id="workoutEditDatePickerLabel" class="hidden"></span>
+            <input id="workoutEditDateInput" type="hidden" />
+          </label>
+          <label class="edit-field">
+            <span>部位</span>
+            <select id="workoutEditBodyPartSelect"></select>
+          </label>
+          <label class="edit-field">
+            <span>メニュー</span>
+            <select id="workoutEditExerciseSelect"></select>
+          </label>
         </div>
 
-        <div class="section-title">筋トレ記録入力</div>
+        <div id="workoutEditSetList" class="edit-set-form-list"></div>
 
-        <div class="form-group">
-          <label>入力対象日</label>
-          <div class="target-date-box">
-            <div id="workoutInputTargetDateLabel" class="target-date-label">2026-04-20</div>
-            <button id="toggleWorkoutInputDatePickerBtn" class="sub-btn" type="button">日付を変更</button>
-          </div>
-          <div id="workoutInputMiniCalendarWrap" class="mini-picker-popup hidden">
-            <div class="mini-calendar-header">
-              <button id="workoutInputMiniPrevMonthBtn" class="mini-nav-btn" type="button">＜</button>
-              <div id="workoutInputMiniMonthLabel" class="mini-month-label">2026年4月</div>
-              <button id="workoutInputMiniNextMonthBtn" class="mini-nav-btn" type="button">＞</button>
-            </div>
-            <div class="mini-weekday-row">
-              <div>日</div><div>月</div><div>火</div><div>水</div><div>木</div><div>金</div><div>土</div>
-            </div>
-            <div id="workoutInputMiniCalendarGrid" class="mini-calendar-grid"></div>
-          </div>
-        </div>
-
-        <div class="time-grid">
-          <div class="form-group">
-            <label for="bodyPartSelect">部位</label>
-            <select id="bodyPartSelect"></select>
-          </div>
-          <div class="form-group">
-            <label for="exerciseSelect">メニュー</label>
-            <select id="exerciseSelect"></select>
-          </div>
-        </div>
-
-        <div class="top-row">
-          <button id="loadPreviousWorkoutBtn" class="sub-btn" type="button">前回記録を読み出す</button>
-        </div>
-
-        <div class="time-grid">
-          <div class="form-group">
-            <label for="setsInput">セット数</label>
-            <input id="setsInput" type="number" min="1" step="1" value="3" />
-          </div>
-          <div class="form-group">
-            <label for="restSecInput">休憩秒数（目安）</label>
-            <input id="restSecInput" type="number" min="0" step="1" value="60" />
-          </div>
-        </div>
-
-        <div class="form-group">
-          <label for="workoutMemo">全体メモ</label>
-          <textarea id="workoutMemo" rows="3" placeholder="全体メモ"></textarea>
-        </div>
-      </section>
-
-      <section class="card">
-        <div class="section-title">セット記録</div>
-        <div id="setFormsWrap" class="set-form-list"></div>
-        <div id="workoutLogs" class="workout-log-list">
-          <p class="empty-text">まだセット記録はありません。</p>
-        </div>
-        <div class="form-action-row">
-          <button id="saveWorkoutBtn" class="primary-btn" type="button">筋トレ記録を保存</button>
-          <button id="cancelEditWorkoutBtn" class="sub-btn hidden" type="button">編集をやめる</button>
-        </div>
-      </section>
-
-      <section class="card">
-        <div class="section-title">タイマー</div>
-        <div class="timer-status-wrap">
-          <div id="workoutPhaseLabel" class="timer-phase">待機中</div>
-          <div id="workoutTimerDisplay" class="timer-display">00:00</div>
-          <div id="workoutSetStatus" class="timer-sub">セット 0 / 0</div>
-        </div>
-        <div class="workout-btn-row">
-          <button id="workoutMainBtn" class="primary-btn" type="button">開始</button>
-          <button id="workoutResetBtn" class="sub-btn" type="button">リセット</button>
+        <div class="workout-edit-actions">
+          <button id="addWorkoutEditSetBtn" class="sub-btn" type="button">セットを追加</button>
+          <button id="saveWorkoutEditBtn" class="primary-btn" type="button">編集を保存</button>
         </div>
       </section>
     </main>
@@ -234,9 +228,7 @@
         <div class="top-row">
           <button id="backToWorkoutFromStatsBtn" class="sub-btn" type="button">← 筋トレへ戻る</button>
         </div>
-
         <div class="section-title">筋トレ成果グラフ</div>
-
         <div class="time-grid">
           <div class="form-group">
             <label for="statsBodyPartSelect">部位</label>
@@ -247,16 +239,13 @@
             <select id="statsExerciseSelect"></select>
           </div>
         </div>
-
         <div class="stats-btn-row">
           <button id="showWeekStatsBtn" class="sub-btn" type="button">1週間</button>
           <button id="showMonthStatsBtn" class="sub-btn" type="button">1か月</button>
         </div>
-
         <div class="chart-wrap">
           <canvas id="statsCanvas" width="700" height="320"></canvas>
         </div>
-
         <div id="statsSummary" class="schedule-content">データを選択してください。</div>
       </section>
     </main>
@@ -266,9 +255,7 @@
         <div class="top-row">
           <button id="backToCalendarFromSettingsBtn" class="sub-btn" type="button">← 戻る</button>
         </div>
-
         <div class="section-title">設定画面</div>
-
         <div class="settings-tabs">
           <button id="showCalendarSettingsBtn" class="header-btn active-tab" type="button">カレンダー</button>
           <button id="showWorkoutSettingsBtn" class="header-btn" type="button">筋トレ</button>
@@ -280,7 +267,7 @@
           <div class="settings-block">
             <h3>項目を追加</h3>
             <div class="input-inline">
-              <input id="newCategoryInput" type="text" placeholder="例：学習用" />
+              <input id="newCategoryInput" type="text" placeholder="例: 学習用" />
               <button id="addCategoryBtn" class="sub-btn" type="button">追加</button>
             </div>
           </div>
@@ -301,14 +288,13 @@
           <div class="settings-block">
             <h3>部位を追加</h3>
             <div class="input-inline">
-              <input id="newBodyPartInput" type="text" placeholder="例：前腕" />
+              <input id="newBodyPartInput" type="text" placeholder="例: 前腕" />
               <button id="addBodyPartBtn" class="sub-btn" type="button">追加</button>
             </div>
           </div>
-
           <div class="hidden">
             <select id="settingsBodyPartSelect"></select>
-            <input id="newExerciseInput" type="text" placeholder="例：ダンベルカール" />
+            <input id="newExerciseInput" type="text" placeholder="例: ダンベルカール" />
             <button id="addExerciseBtn" class="sub-btn" type="button">追加</button>
           </div>
         </section>
@@ -340,6 +326,19 @@
         </section>
       </section>
     </main>
+  </div>
+
+  <div id="rollPickerOverlay" class="roll-picker-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="rollPickerTitle">
+    <div class="roll-picker-panel">
+      <div class="roll-picker-head">
+        <h3 id="rollPickerTitle">選択</h3>
+      </div>
+      <div id="rollPickerBody" class="roll-picker-body"></div>
+      <div class="roll-picker-actions">
+        <button id="rollPickerCancelBtn" class="sub-btn" type="button">キャンセル</button>
+        <button id="rollPickerApplyBtn" class="primary-btn" type="button">決定</button>
+      </div>
+    </div>
   </div>
 
   <script src="script.js"></script>

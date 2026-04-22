@@ -1,6 +1,6 @@
 {
-  "name": "記憶カレンダー",
-  "short_name": "記憶カレンダー",
+  "name": "記録カレンダー",
+  "short_name": "記録カレンダー",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#f4f6fb",
