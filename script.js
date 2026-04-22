@@ -112,6 +112,7 @@ const itemCount = $("itemCount");
 const selectedDateLabel = $("selectedDateLabel");
 const prevMonthBtn = $("prevMonthBtn");
 const nextMonthBtn = $("nextMonthBtn");
+const todayMonthBtn = $("todayMonthBtn");
 const goInputBtn = $("goInputBtn");
 
 const miniMonthLabel = $("miniMonthLabel");
@@ -126,6 +127,8 @@ const setNowStartBtn = $("setNowStartBtn");
 const setNowEndBtn = $("setNowEndBtn");
 const titleInput = $("title");
 const contentInput = $("content");
+const calendarPhotoInput = $("calendarPhotoInput");
+const calendarPhotoPreviewList = $("calendarPhotoPreviewList");
 const saveRecordBtn = $("saveRecordBtn");
 
 const backToCalendarFromWorkoutBtn = $("backToCalendarFromWorkoutBtn");
@@ -136,6 +139,7 @@ const workoutMiniMonthLabel = $("workoutMiniMonthLabel");
 const workoutMiniCalendarGrid = $("workoutMiniCalendarGrid");
 const workoutMiniPrevMonthBtn = $("workoutMiniPrevMonthBtn");
 const workoutMiniNextMonthBtn = $("workoutMiniNextMonthBtn");
+const workoutTodayBtn = $("workoutTodayBtn");
 const workoutDashboard = $("workoutDashboard");
 const workoutHistoryList = $("workoutHistoryList");
 const workoutItemCount = $("workoutItemCount");
@@ -144,6 +148,7 @@ const backToWorkoutFromInputBtn = $("backToWorkoutFromInputBtn");
 const workoutInputTargetDateLabel = $("workoutInputTargetDateLabel");
 const workoutInputDateChangeBtn = $("workoutInputDateChangeBtn");
 const workoutDatePickerNative = $("workoutDatePickerNative");
+const setWorkoutDateTodayBtn = $("setWorkoutDateTodayBtn");
 const bodyPartSelect = $("bodyPartSelect");
 const exerciseSelect = $("exerciseSelect");
 const setsInput = $("setsInput");
@@ -185,8 +190,14 @@ const statsSummary = $("statsSummary");
 const backToCalendarFromSettingsBtn = $("backToCalendarFromSettingsBtn");
 const showCalendarSettingsBtn = $("showCalendarSettingsBtn");
 const showWorkoutSettingsBtn = $("showWorkoutSettingsBtn");
+const showTransferSettingsBtn = $("showTransferSettingsBtn");
 const calendarSettingsSection = $("calendarSettingsSection");
 const workoutSettingsSection = $("workoutSettingsSection");
+const transferSettingsSection = $("transferSettingsSection");
+const dataTransferTypeSelect = $("dataTransferTypeSelect");
+const exportCsvBtn = $("exportCsvBtn");
+const importCsvBtn = $("importCsvBtn");
+const importCsvInput = $("importCsvInput");
 const newCategoryInput = $("newCategoryInput");
 const addCategoryBtn = $("addCategoryBtn");
 const categorySettingsList = $("categorySettingsList");
@@ -220,6 +231,7 @@ let workoutState = {
 let workoutDraftInputs = {};
 let workoutEditState = null;
 let scheduleEditState = null;
+let schedulePhotoDrafts = [];
 let activeRollPickerApply = null;
 
 function readStorage(key, fallback) {
@@ -471,6 +483,7 @@ function openRollPicker(title, bodyHtml, onApply) {
   rollPickerTitle.textContent = title;
   rollPickerBody.innerHTML = bodyHtml;
   rollPickerBody.classList.toggle("has-combined-input", !!rollPickerBody.querySelector(".roll-combined-input"));
+  rollPickerBody.style.setProperty("--roll-column-count", String(Math.max(1, rollPickerBody.querySelectorAll(".roll-column").length)));
   bindRollDirectInputs();
   activeRollPickerApply = onApply;
   rollPickerCancelBtn.onclick = closeRollPicker;
@@ -486,6 +499,7 @@ function closeRollPicker() {
   rollPickerOverlay.classList.add("hidden");
   rollPickerBody.innerHTML = "";
   rollPickerBody.classList.remove("has-combined-input");
+  rollPickerBody.style.removeProperty("--roll-column-count");
   activeRollPickerApply = null;
 }
 
@@ -623,6 +637,9 @@ function openWeightRollPicker(title, value, onApply) {
   const decimalValue = Math.min(9, Math.round((safeValue - integerValue) * 10));
 
   openRollPicker(title, `
+    <div class="roll-combined-input-row">
+      <input id="rollWeightDirectInput" class="roll-combined-input" type="number" inputmode="decimal" min="0" max="300" step="0.1" placeholder="10.0" />
+    </div>
     <div class="roll-column">
       <span>kg</span>
       <select id="rollWeightIntegerSelect" class="roll-select" size="5"></select>
@@ -632,6 +649,11 @@ function openWeightRollPicker(title, value, onApply) {
       <select id="rollWeightDecimalSelect" class="roll-select" size="5"></select>
     </div>
   `, () => {
+    const directValue = rollPickerBody.querySelector("#rollWeightDirectInput")?.value;
+    if (directValue !== undefined && directValue !== "") {
+      onApply(formatWeightRollValue(directValue));
+      return;
+    }
     const kg = Number(rollPickerBody.querySelector("#rollWeightIntegerSelect").value || 0);
     const decimal = Number(rollPickerBody.querySelector("#rollWeightDecimalSelect").value || 0);
     onApply((kg + decimal / 10).toFixed(1));
@@ -639,6 +661,26 @@ function openWeightRollPicker(title, value, onApply) {
 
   setSelectOptions(rollPickerBody.querySelector("#rollWeightIntegerSelect"), rangeOptions(0, 300), integerValue);
   setSelectOptions(rollPickerBody.querySelector("#rollWeightDecimalSelect"), rangeOptions(0, 9), decimalValue);
+  const integerSelect = rollPickerBody.querySelector("#rollWeightIntegerSelect");
+  const decimalSelect = rollPickerBody.querySelector("#rollWeightDecimalSelect");
+  const directInput = rollPickerBody.querySelector("#rollWeightDirectInput");
+  const syncDirectInput = () => {
+    directInput.value = `${integerSelect.value}.${decimalSelect.value}`;
+  };
+  const applyDirectInput = () => {
+    const value = Math.min(300, Math.max(0, Number(directInput.value || 0)));
+    const kg = Math.floor(value);
+    const decimal = Math.min(9, Math.max(0, Math.round((value - kg) * 10)));
+    integerSelect.value = String(kg);
+    decimalSelect.value = String(decimal);
+    syncDirectInput();
+    scrollRollSelect(integerSelect);
+    scrollRollSelect(decimalSelect);
+  };
+  integerSelect.addEventListener("change", syncDirectInput);
+  decimalSelect.addEventListener("change", syncDirectInput);
+  directInput.addEventListener("change", applyDirectInput);
+  syncDirectInput();
 }
 
 function openRepsRollPicker(title, value, onApply) {
@@ -759,34 +801,34 @@ function setSelectedDate(dateKey) {
   renderScheduleList();
 }
 
+function goCalendarToday() {
+  setSelectedDate(formatDateKey(new Date()));
+}
+
+function goWorkoutToday() {
+  setWorkoutDate(formatDateKey(new Date()));
+}
+
 function renderCalendar() {
   monthLabel.textContent = `${currentYear}年${currentMonth + 1}月`;
   const schedules = getSchedules();
-  const categories = getCategories();
-  const categoryMap = new Map(categories.map(item => [item.id, item]));
   const todayKey = formatDateKey(new Date());
 
   calendarGrid.innerHTML = getCalendarCells(currentYear, currentMonth).map(dateObj => {
     const dateKey = formatDateKey(dateObj);
     const dayItems = schedules[dateKey] || [];
-    const dotHtml = dayItems.slice(0, 4).map(item => {
-      const category = categoryMap.get(item.categoryId);
-      const color = item.color || category?.color || "#2563eb";
-      return `<span class="event-dot" style="background:${escapeAttr(color)}"></span>`;
-    }).join("");
 
     const classes = [
       "day-cell",
       dateObj.getMonth() !== currentMonth ? "other-month" : "",
       dateKey === todayKey ? "today" : "",
-      dateKey === selectedDate ? "selected" : ""
+      dateKey === selectedDate ? "selected" : "",
+      dayItems.length ? "has-items" : ""
     ].filter(Boolean).join(" ");
 
     return `
       <button class="${classes}" type="button" data-date="${dateKey}">
         <div class="day-number">${dateObj.getDate()}</div>
-        ${dayItems.length ? `<div class="day-count">${dayItems.length}</div>` : ""}
-        <div class="event-dot-wrap">${dotHtml}</div>
       </button>
     `;
   }).join("");
@@ -872,11 +914,403 @@ function normalizeDateTimeYearInput(input) {
   input.value = `${year.slice(0, 4)}-${value.split("-").slice(1).join("-")}`;
 }
 
+function normalizeDateYearInput(input) {
+  if (!input?.value) return;
+  const value = input.value;
+  const year = value.split("-")[0] || "";
+  if (year.length <= 4) return;
+  input.value = `${year.slice(0, 4)}-${value.split("-").slice(1).join("-")}`;
+}
+
+function renderPhotoPreviewList() {
+  if (!calendarPhotoPreviewList) return;
+  if (!schedulePhotoDrafts.length) {
+    calendarPhotoPreviewList.innerHTML = `<p class="photo-empty-text">写真はまだありません。</p>`;
+    return;
+  }
+
+  calendarPhotoPreviewList.innerHTML = schedulePhotoDrafts.map((photo, index) => `
+    <div class="photo-preview-item">
+      <img src="${escapeAttr(photo.dataUrl || "")}" alt="${escapeAttr(photo.name || `写真${index + 1}`)}" />
+      <button class="close-x-btn" type="button" aria-label="写真を削除" data-remove-photo="${index}">×</button>
+    </div>
+  `).join("");
+
+  calendarPhotoPreviewList.querySelectorAll("[data-remove-photo]").forEach(button => {
+    button.addEventListener("click", () => {
+      schedulePhotoDrafts.splice(Number(button.dataset.removePhoto), 1);
+      renderPhotoPreviewList();
+    });
+  });
+}
+
+function resetSchedulePhotos(photos = []) {
+  schedulePhotoDrafts = deepCopy(Array.isArray(photos) ? photos : []).slice(0, 5);
+  if (calendarPhotoInput) calendarPhotoInput.value = "";
+  renderPhotoPreviewList();
+}
+
+function handleSchedulePhotoInput() {
+  const files = [...(calendarPhotoInput.files || [])].slice(0, Math.max(0, 5 - schedulePhotoDrafts.length));
+  if (!files.length) {
+    calendarPhotoInput.value = "";
+    return;
+  }
+
+  Promise.all(files.map(file => new Promise(resolve => {
+    const reader = new FileReader();
+    reader.onload = () => resolve({ name: file.name, dataUrl: String(reader.result || "") });
+    reader.onerror = () => resolve(null);
+    reader.readAsDataURL(file);
+  }))).then(results => {
+    schedulePhotoDrafts = schedulePhotoDrafts.concat(results.filter(Boolean)).slice(0, 5);
+    calendarPhotoInput.value = "";
+    renderPhotoPreviewList();
+  });
+}
+
+function renderSchedulePhotos(photos = []) {
+  if (!Array.isArray(photos) || !photos.length) return "";
+  return `
+    <div class="schedule-photo-grid">
+      ${photos.slice(0, 5).map((photo, index) => `
+        <img src="${escapeAttr(photo.dataUrl || "")}" alt="${escapeAttr(photo.name || `写真${index + 1}`)}" />
+      `).join("")}
+    </div>
+  `;
+}
+
+function csvEscape(value) {
+  const text = value == null ? "" : String(value);
+  if (/[",\r\n]/.test(text)) return `"${text.replaceAll('"', '""')}"`;
+  return text;
+}
+
+function toCsv(headers, rows) {
+  return [
+    headers.map(csvEscape).join(","),
+    ...rows.map(row => headers.map(header => csvEscape(row[header])).join(","))
+  ].join("\n");
+}
+
+function parseCsv(text) {
+  text = String(text || "").replace(/^\uFEFF/, "");
+  const rows = [];
+  let row = [];
+  let cell = "";
+  let inQuotes = false;
+
+  for (let i = 0; i < text.length; i++) {
+    const char = text[i];
+    const next = text[i + 1];
+    if (char === '"') {
+      if (inQuotes && next === '"') {
+        cell += '"';
+        i++;
+      } else {
+        inQuotes = !inQuotes;
+      }
+    } else if (char === "," && !inQuotes) {
+      row.push(cell);
+      cell = "";
+    } else if ((char === "\n" || char === "\r") && !inQuotes) {
+      if (char === "\r" && next === "\n") i++;
+      row.push(cell);
+      if (row.some(value => value !== "")) rows.push(row);
+      row = [];
+      cell = "";
+    } else {
+      cell += char;
+    }
+  }
+
+  row.push(cell);
+  if (row.some(value => value !== "")) rows.push(row);
+
+  const headers = rows.shift() || [];
+  return rows.map(values => Object.fromEntries(headers.map((header, index) => [header, values[index] || ""])));
+}
+
+function parseJsonField(value, fallback) {
+  if (!value) return fallback;
+  try {
+    const parsed = JSON.parse(value);
+    return parsed ?? fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function parseJsonArray(value) {
+  const parsed = parseJsonField(value, []);
+  return Array.isArray(parsed) ? parsed : [];
+}
+
+function downloadTextFile(fileName, text) {
+  const blob = new Blob([`\uFEFF${text}`], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = fileName;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
+
+function getCsvDateStamp() {
+  const now = new Date();
+  return `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}`;
+}
+
+function normalizeCsvDate(value) {
+  const raw = String(value || "").trim();
+  if (!raw) return "";
+  const compact = raw.replace(/\D/g, "");
+  if (compact.length >= 8) {
+    return `${compact.slice(0, 4)}-${compact.slice(4, 6)}-${compact.slice(6, 8)}`;
+  }
+  const date = new Date(raw);
+  return Number.isNaN(date.getTime()) ? "" : formatDateKey(date);
+}
+
+function normalizeCsvTime(value) {
+  const raw = String(value || "").trim();
+  if (!raw) return "";
+  const parts = raw.split(":").map(part => part.replace(/\D/g, ""));
+  const hour = Math.min(23, Math.max(0, Number(parts[0] || 0)));
+  const minute = Math.min(59, Math.max(0, Number(parts[1] || 0)));
+  return `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
+}
+
+function splitDateTimeValue(value, fallbackDate = "") {
+  const raw = String(value || "");
+  return {
+    date: raw.slice(0, 10) || fallbackDate,
+    time: raw.includes("T") ? raw.slice(11, 16) : ""
+  };
+}
+
+function combineCsvDateTime(dateKey, timeValue) {
+  const time = normalizeCsvTime(timeValue);
+  return `${dateKey}T${time || "00:00"}`;
+}
+
+function parseCsvDuration(value) {
+  const raw = String(value || "").trim();
+  if (!raw) return 0;
+  if (raw.includes(":")) {
+    const [m, s] = raw.split(":").map(Number);
+    return Math.max(0, (Number(m || 0) * 60) + Number(s || 0));
+  }
+  return Math.max(0, Number(raw || 0));
+}
+
+function parseCsvAssist(value) {
+  const raw = String(value || "").trim().toLowerCase();
+  return ["あり", "有", "true", "1", "yes", "y"].includes(raw);
+}
+
+function getOrCreateCategoryByName(name, categories) {
+  const safeName = name || "未分類";
+  const existing = categories.find(category => category.name === safeName);
+  if (existing) return existing;
+  const category = { id: createId(), name: safeName, color: "#2563eb", template: DEFAULT_TEMPLATE };
+  categories.push(category);
+  return category;
+}
+
+function exportCalendarCsv() {
+  const schedules = getSchedules();
+  const headers = ["日付", "開始時間", "終了時間", "項目", "タイトル", "内容"];
+  const rows = Object.entries(schedules)
+    .flatMap(([dateKey, items]) => (items || []).map(item => {
+      const start = splitDateTimeValue(item.start, dateKey);
+      const end = splitDateTimeValue(item.end, dateKey);
+      const category = getCategoryById(item.categoryId);
+      return {
+        "日付": start.date || dateKey,
+        "開始時間": start.time,
+        "終了時間": end.time,
+        "項目": category?.name || item.categoryName || "未分類",
+        "タイトル": item.title || "",
+        "内容": item.content || ""
+      };
+    }))
+    .sort((a, b) => `${a["日付"]} ${a["開始時間"]}`.localeCompare(`${b["日付"]} ${b["開始時間"]}`));
+  downloadTextFile(`calendar-${getCsvDateStamp()}.csv`, toCsv(headers, rows));
+}
+
+function exportWorkoutCsv() {
+  const sessions = getWorkoutSessions();
+  const items = Object.entries(sessions)
+    .flatMap(([dateKey, dayItems]) => (dayItems || []).map(item => ({ dateKey, ...item })))
+    .sort((a, b) => `${a.dateKey} ${a.createdAt || ""}`.localeCompare(`${b.dateKey} ${b.createdAt || ""}`));
+  const maxSets = Math.max(1, ...items.map(item => (item.setLogs || []).length));
+  const headers = ["日付", "部位", "メニュー"];
+  for (let setNo = 1; setNo <= maxSets; setNo++) {
+    headers.push(
+      `重量(${setNo}セット)`,
+      `回数(${setNo}セット)`,
+      `RM(${setNo}セット)`,
+      `補助有無(${setNo}セット)`,
+      `メモ(${setNo}セット)`,
+      `実施時間(${setNo}セット)`,
+      `休憩時間(${setNo}セット)`
+    );
+  }
+  const rows = items.map(item => {
+    const row = {
+      "日付": item.dateKey,
+      "部位": item.bodyPart || "",
+      "メニュー": item.exercise || ""
+    };
+    for (let index = 0; index < maxSets; index++) {
+      const setNo = index + 1;
+      const log = (item.setLogs || [])[index] || {};
+      row[`重量(${setNo}セット)`] = log.weight || "";
+      row[`回数(${setNo}セット)`] = log.reps || "";
+      row[`RM(${setNo}セット)`] = log.rm || "";
+      row[`補助有無(${setNo}セット)`] = log.assist ? "あり" : "";
+      row[`メモ(${setNo}セット)`] = log.memo || "";
+      row[`実施時間(${setNo}セット)`] = log.workSec != null && log.workSec !== "" ? formatSeconds(log.workSec) : "";
+      row[`休憩時間(${setNo}セット)`] = log.restSec != null && log.restSec !== "" ? formatSeconds(log.restSec) : "";
+    }
+    return row;
+  });
+  downloadTextFile(`workout-${getCsvDateStamp()}.csv`, toCsv(headers, rows));
+}
+
+function importCalendarCsv(text) {
+  const rows = parseCsv(text);
+  const schedules = getSchedules();
+  const categories = getCategories();
+
+  rows.forEach(row => {
+    const dateKey = normalizeCsvDate(row["日付"] || row.dateKey || (row.start ? row.start.slice(0, 10) : ""));
+    if (!dateKey) return;
+    const category = row["項目"]
+      ? getOrCreateCategoryByName(row["項目"], categories)
+      : (getCategoryById(row.categoryId) || getOrCreateCategoryByName(row.categoryName || "未分類", categories));
+
+    const item = {
+      id: row.id || createId(),
+      categoryId: category.id,
+      categoryName: category.name,
+      color: category.color || "#2563eb",
+      start: row.start || (normalizeCsvTime(row["開始時間"]) ? combineCsvDateTime(dateKey, row["開始時間"]) : `${dateKey}T00:00`),
+      end: row.end || (normalizeCsvTime(row["終了時間"]) ? combineCsvDateTime(dateKey, row["終了時間"]) : ""),
+      title: row["タイトル"] || row.title || "無題",
+      content: row["内容"] || row.content || "",
+      createdAt: Number(row.createdAt || Date.now()),
+      photos: parseJsonArray(row.photos).slice(0, 5)
+    };
+    if (!schedules[dateKey]) schedules[dateKey] = [];
+    schedules[dateKey] = schedules[dateKey].filter(existing => (
+      existing.id !== item.id &&
+      !(existing.start === item.start && existing.title === item.title && existing.content === item.content)
+    )).concat(item);
+  });
+
+  saveCategories(categories);
+  saveSchedules(schedules);
+  renderCategorySelect(categorySelect.value);
+  renderCategorySettingsList();
+  renderCalendar();
+  renderScheduleList();
+}
+
+function importWorkoutCsv(text) {
+  const rows = parseCsv(text);
+  const sessions = getWorkoutSessions();
+  const masters = getWorkoutMasters();
+
+  rows.forEach(row => {
+    const dateKey = normalizeCsvDate(row["日付"] || row.dateKey);
+    if (!dateKey) return;
+    const bodyPart = row["部位"] || row.bodyPart || "未分類";
+    const exercise = row["メニュー"] || row.exercise || "メニュー未設定";
+    if (!masters[bodyPart]) masters[bodyPart] = [];
+    if (!masters[bodyPart].includes(exercise)) masters[bodyPart].push(exercise);
+    const setLogs = row.setLogs ? parseJsonArray(row.setLogs) : [];
+    if (!setLogs.length) {
+      for (let setNo = 1; ; setNo++) {
+        const weight = row[`重量(${setNo}セット)`];
+        const reps = row[`回数(${setNo}セット)`];
+        const rm = row[`RM(${setNo}セット)`];
+        const memo = row[`メモ(${setNo}セット)`];
+        const workSec = row[`実施時間(${setNo}セット)`];
+        const restSec = row[`休憩時間(${setNo}セット)`];
+        const assist = row[`補助有無(${setNo}セット)`];
+        if ([weight, reps, rm, memo, workSec, restSec, assist].every(value => value == null || value === "")) break;
+        setLogs.push({
+          setNo,
+          weight: weight || "",
+          reps: reps || "",
+          rm: rm || calcEstimated1RM(weight, reps),
+          assist: parseCsvAssist(assist),
+          memo: memo || "",
+          workSec: parseCsvDuration(workSec),
+          restSec: parseCsvDuration(restSec)
+        });
+      }
+    }
+
+    const item = {
+      id: row.id || createId(),
+      bodyPart,
+      exercise,
+      targetSets: Number(row.targetSets || setLogs.length || 0),
+      memo: row.memo || "",
+      createdAt: Number(row.createdAt || Date.now()),
+      setLogs
+    };
+    if (!sessions[dateKey]) sessions[dateKey] = [];
+    sessions[dateKey] = sessions[dateKey].filter(existing => (
+      existing.id !== item.id &&
+      !(existing.bodyPart === item.bodyPart && existing.exercise === item.exercise && JSON.stringify(existing.setLogs || []) === JSON.stringify(item.setLogs || []))
+    )).concat(item);
+  });
+
+  saveWorkoutMasters(masters);
+  saveWorkoutSessions(sessions);
+  renderWorkoutBodyPartSelect(bodyPartSelect.value);
+  renderSettingsBodyPartSelect();
+  renderWorkoutSettingsList();
+  renderWorkoutMiniCalendar();
+  renderWorkoutHistory();
+}
+
+function exportSelectedCsv() {
+  if (dataTransferTypeSelect.value === "workout") {
+    exportWorkoutCsv();
+  } else {
+    exportCalendarCsv();
+  }
+}
+
+function importSelectedCsv(file) {
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    const text = String(reader.result || "");
+    if (dataTransferTypeSelect.value === "workout") {
+      importWorkoutCsv(text);
+    } else {
+      importCalendarCsv(text);
+    }
+    importCsvInput.value = "";
+    alert("CSVをインポートしました。");
+  };
+  reader.readAsText(file);
+}
+
 function openScheduleCreate() {
   scheduleEditState = null;
   renderCategorySelect();
   titleInput.value = "";
   contentInput.value = "";
+  resetSchedulePhotos();
   setDefaultDateTimes();
   saveRecordBtn.textContent = "保存する";
   updateContentTemplateIfEmpty(false);
@@ -896,6 +1330,7 @@ function openScheduleEdit(dateKey, id) {
   renderCategorySelect(item.categoryId);
   titleInput.value = item.title || "";
   contentInput.value = item.content || "";
+  resetSchedulePhotos(item.photos || []);
   startDateTimeInput.value = item.start || `${dateKey}T00:00`;
   endDateTimeInput.value = item.end || `${dateKey}T00:00`;
   normalizeDateTimeYearInput(startDateTimeInput);
@@ -929,6 +1364,7 @@ function addSchedule() {
     end,
     title: title || "無題",
     content,
+    photos: deepCopy(schedulePhotoDrafts).slice(0, 5),
     createdAt: Date.now()
   };
 
@@ -951,10 +1387,12 @@ function addSchedule() {
   currentMonth = Number(dateKey.slice(5, 7)) - 1;
   titleInput.value = "";
   contentInput.value = "";
+  resetSchedulePhotos();
   saveRecordBtn.textContent = "保存する";
   renderCalendar();
   renderMiniCalendar();
   renderScheduleList();
+  renderPhotoPreviewList();
   switchView("calendar");
 }
 
@@ -994,6 +1432,7 @@ function renderScheduleList() {
             <div class="schedule-detail-time">${escapeHtml(fullTimeText)}</div>
           </div>
           <div class="schedule-content">${escapeHtml(item.content || "")}</div>
+          ${renderSchedulePhotos(item.photos || [])}
         </div>
         <div class="schedule-actions">
           <button class="sub-btn" type="button" data-edit-schedule="${escapeAttr(item.id)}">編集</button>
@@ -1143,18 +1582,17 @@ function renderWorkoutMiniCalendar() {
   workoutMiniCalendarGrid.innerHTML = getCalendarCells(workoutMiniYear, workoutMiniMonth).map(dateObj => {
     const dateKey = formatDateKey(dateObj);
     const count = (sessions[dateKey] || []).length;
-    const dots = Array.from({ length: Math.min(count, 5) }, () => `<span class="workout-mini-day-dot"></span>`).join("");
     const classes = [
       "day-cell",
       dateObj.getMonth() !== workoutMiniMonth ? "other-month" : "",
       dateKey === todayKey ? "today" : "",
-      dateKey === selectedDate ? "selected" : ""
+      dateKey === selectedDate ? "selected" : "",
+      count ? "has-workout" : ""
     ].filter(Boolean).join(" ");
 
     return `
       <button class="${classes}" type="button" data-date="${dateKey}">
         <div class="day-number">${dateObj.getDate()}</div>
-        <div class="workout-mini-day-dot-wrap">${dots}</div>
       </button>
     `;
   }).join("");
@@ -1675,6 +2113,7 @@ function renderWorkoutHistory() {
     const setLogs = item.setLogs || [];
     const totalWork = setLogs.reduce((sum, log) => sum + Number(log.workSec || 0), 0);
     const totalRest = setLogs.reduce((sum, log) => sum + Number(log.restSec || 0), 0);
+    const totalVolume = calcWorkoutTotalVolume(setLogs);
     const topRm = Math.max(...setLogs.map(log => Number(log.rm || 0)), 0);
     const detailHtml = setLogs.map((log, index) => `
       <div class="workout-history-detail-row">
@@ -1693,20 +2132,17 @@ function renderWorkoutHistory() {
           <div class="workout-history-summary-main">
             <div class="workout-history-simple-title">${escapeHtml(item.bodyPart)} / ${escapeHtml(item.exercise)}</div>
             <div class="workout-history-simple-body">
-              セット: ${escapeHtml(item.targetSets || setLogs.length || "-")} /
-              実施: ${formatSeconds(totalWork)} /
-              休憩: ${formatSeconds(totalRest)} /
-              最高RM: ${topRm ? topRm.toFixed(1) : "-"}kg
+              総重量: ${formatWeightNumber(totalVolume)}kg / セット数: ${escapeHtml(item.targetSets || setLogs.length || "-")} / 最高RM: ${topRm ? `${topRm.toFixed(1)}kg` : "-"}
             </div>
-            <div class="workout-history-simple-body">${escapeHtml(getWorkoutVolumeText(item))}</div>
-          </div>
-          <div class="workout-history-actions">
-            <button class="edit-workout-btn" type="button" data-edit-workout="${escapeAttr(item.id)}">編集</button>
-            <button class="close-x-btn" type="button" aria-label="削除" data-delete-workout="${escapeAttr(item.id)}">×</button>
+            <div class="workout-history-simple-body">実施: ${formatSeconds(totalWork)} / 休憩: ${formatSeconds(totalRest)}</div>
           </div>
         </summary>
         <div class="workout-history-detail-wrap">
           ${detailHtml || `<div class="workout-history-simple-body">セット詳細はありません。</div>`}
+          <div class="workout-history-actions">
+            <button class="edit-workout-btn" type="button" data-edit-workout="${escapeAttr(item.id)}">編集</button>
+            <button class="close-x-btn" type="button" aria-label="削除" data-delete-workout="${escapeAttr(item.id)}">×</button>
+          </div>
         </div>
       </details>
     `;
@@ -2131,18 +2567,25 @@ function addExercise() {
   newExerciseInput.value = "";
 }
 
+function showSettingsSection(sectionName) {
+  calendarSettingsSection.classList.toggle("hidden", sectionName !== "calendar");
+  workoutSettingsSection.classList.toggle("hidden", sectionName !== "workout");
+  transferSettingsSection.classList.toggle("hidden", sectionName !== "transfer");
+  showCalendarSettingsBtn.classList.toggle("active-tab", sectionName === "calendar");
+  showWorkoutSettingsBtn.classList.toggle("active-tab", sectionName === "workout");
+  showTransferSettingsBtn.classList.toggle("active-tab", sectionName === "transfer");
+}
+
 function showCalendarSettings() {
-  calendarSettingsSection.classList.remove("hidden");
-  workoutSettingsSection.classList.add("hidden");
-  showCalendarSettingsBtn.classList.add("active-tab");
-  showWorkoutSettingsBtn.classList.remove("active-tab");
+  showSettingsSection("calendar");
 }
 
 function showWorkoutSettings() {
-  calendarSettingsSection.classList.add("hidden");
-  workoutSettingsSection.classList.remove("hidden");
-  showCalendarSettingsBtn.classList.remove("active-tab");
-  showWorkoutSettingsBtn.classList.add("active-tab");
+  showSettingsSection("workout");
+}
+
+function showTransferSettings() {
+  showSettingsSection("transfer");
 }
 
 function renderStatsBodyPartSelect(selected = "") {
@@ -2287,6 +2730,7 @@ function bindEvents() {
     }
     renderCalendar();
   });
+  todayMonthBtn.addEventListener("click", goCalendarToday);
 
   if (miniPrevMonthBtn && miniNextMonthBtn) {
     miniPrevMonthBtn.addEventListener("click", () => {
@@ -2327,10 +2771,12 @@ function bindEvents() {
     renderWorkoutMiniCalendar();
     renderWorkoutDashboard();
   });
+  workoutTodayBtn.addEventListener("click", goWorkoutToday);
 
   goInputBtn.addEventListener("click", openScheduleCreate);
   backToCalendarFromInputBtn.addEventListener("click", () => {
     scheduleEditState = null;
+    resetSchedulePhotos();
     saveRecordBtn.textContent = "保存する";
     switchView("calendar");
   });
@@ -2351,6 +2797,7 @@ function bindEvents() {
     input.addEventListener("change", () => normalizeDateTimeYearInput(input));
   });
   categorySelect.addEventListener("change", () => updateContentTemplateIfEmpty(true));
+  calendarPhotoInput.addEventListener("change", handleSchedulePhotoInput);
   saveRecordBtn.addEventListener("click", addSchedule);
   addCategoryBtn.addEventListener("click", addCategory);
 
@@ -2369,8 +2816,10 @@ function bindEvents() {
   loadPreviousWorkoutBtn.addEventListener("click", loadPreviousWorkout);
   backToWorkoutFromEditBtn.addEventListener("click", () => switchView("workout"));
   workoutEditDatePickerBtn.addEventListener("change", () => {
+    normalizeDateYearInput(workoutEditDatePickerBtn);
     if (workoutEditDatePickerBtn.value) setWorkoutEditDateValue(workoutEditDatePickerBtn.value);
   });
+  workoutEditDatePickerBtn.addEventListener("input", () => normalizeDateYearInput(workoutEditDatePickerBtn));
   workoutEditBodyPartSelect.addEventListener("change", () => renderWorkoutEditExerciseSelect());
   addWorkoutEditSetBtn.addEventListener("click", addWorkoutEditSet);
   saveWorkoutEditBtn.addEventListener("click", saveWorkoutEdit);
@@ -2379,12 +2828,16 @@ function bindEvents() {
   });
 
   workoutInputDateChangeBtn.addEventListener("click", openWorkoutInputDateRollPicker);
+  setWorkoutDateTodayBtn.addEventListener("click", goWorkoutToday);
 
   workoutDatePickerNative.addEventListener("change", () => {
+    normalizeDateYearInput(workoutDatePickerNative);
     if (workoutDatePickerNative.value) setWorkoutDate(workoutDatePickerNative.value);
   });
+  workoutDatePickerNative.addEventListener("input", () => normalizeDateYearInput(workoutDatePickerNative));
 
   workoutDateInput.addEventListener("change", () => {
+    normalizeDateYearInput(workoutDateInput);
     if (workoutDateInput.value) setWorkoutDate(workoutDateInput.value);
   });
 
@@ -2393,6 +2846,10 @@ function bindEvents() {
   saveWorkoutDefaultsBtn.addEventListener("click", saveWorkoutDefaultSettings);
   showCalendarSettingsBtn.addEventListener("click", showCalendarSettings);
   showWorkoutSettingsBtn.addEventListener("click", showWorkoutSettings);
+  showTransferSettingsBtn.addEventListener("click", showTransferSettings);
+  exportCsvBtn.addEventListener("click", exportSelectedCsv);
+  importCsvBtn.addEventListener("click", () => importCsvInput.click());
+  importCsvInput.addEventListener("change", () => importSelectedCsv(importCsvInput.files?.[0]));
 
   statsBodyPartSelect.addEventListener("change", () => {
     renderStatsExerciseSelect();

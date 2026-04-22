@@ -113,6 +113,14 @@ body {
   margin-bottom: 12px;
 }
 
+.calendar-today-btn {
+  width: 100%;
+  margin: -4px 0 10px;
+  min-height: 36px;
+  border-radius: 8px;
+  font-weight: 800;
+}
+
 .month-label,
 .mini-month-label {
   text-align: center;
@@ -232,6 +240,58 @@ body {
 
 .form-group {
   margin-bottom: 12px;
+}
+
+.photo-preview-list {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.photo-preview-item {
+  position: relative;
+  aspect-ratio: 1;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #f8fafc;
+}
+
+.photo-preview-item img,
+.schedule-photo-grid img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.photo-preview-item .close-x-btn {
+  position: absolute;
+  right: 4px;
+  top: 4px;
+  width: 28px;
+  height: 28px;
+}
+
+.photo-empty-text {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: var(--subtext);
+  font-size: 13px;
+}
+
+.schedule-photo-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.schedule-photo-grid img {
+  aspect-ratio: 1;
+  border-radius: 8px;
+  border: 1px solid var(--line);
 }
 
 .form-group label {
@@ -424,6 +484,17 @@ textarea {
   gap: 8px;
 }
 
+.transfer-grid {
+  display: grid;
+  grid-template-columns: minmax(160px, 1fr) 140px 140px;
+  gap: 10px;
+  align-items: end;
+}
+
+.transfer-grid .form-group {
+  margin-bottom: 0;
+}
+
 .setting-item-title {
   font-size: 15px;
   font-weight: 700;
@@ -581,6 +652,15 @@ canvas {
 @media (max-width: 640px) {
   .header-actions {
     justify-content: flex-end;
+  }
+
+  .transfer-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .photo-preview-list,
+  .schedule-photo-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 
@@ -741,6 +821,11 @@ canvas {
 
 .workout-history-actions {
   flex-shrink: 0;
+}
+
+.workout-history-detail-wrap .workout-history-actions {
+  justify-content: flex-end;
+  margin-top: 10px;
 }
 
 .close-x-btn {
@@ -1408,11 +1493,15 @@ body {
 }
 
 .calendar-planner-card .day-cell {
-  min-height: 68px;
+  aspect-ratio: 1 / 1;
+  min-height: 0;
   border: 1px solid var(--line);
   border-radius: 12px;
-  padding: 7px 5px;
+  padding: 0;
   background: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   text-align: center;
 }
 
@@ -1453,10 +1542,21 @@ body {
   color: #9a3412;
 }
 
+.calendar-planner-card .day-cell.has-items .day-number {
+  background: #bfdbfe;
+  color: #1d4ed8;
+  font-weight: 900;
+}
+
+.calendar-planner-card .day-cell.has-items.selected .day-number {
+  background: #2563eb;
+  color: #ffffff;
+}
+
 .day-count {
   position: absolute;
-  right: 8px;
-  top: 8px;
+  right: 5px;
+  bottom: 5px;
   min-width: 22px;
   height: 22px;
   border-radius: 999px;
@@ -1469,14 +1569,11 @@ body {
 }
 
 .calendar-planner-card .event-dot-wrap {
-  justify-content: center;
-  margin-top: 8px;
+  display: none;
 }
 
 .calendar-planner-card .event-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
+  display: none;
 }
 
 .calendar-action-card {
@@ -1505,17 +1602,11 @@ body {
 .timeline-card .schedule-list {
   position: relative;
   gap: 0;
-  padding-left: 6px;
+  padding-left: 0;
 }
 
 .timeline-card .schedule-list::before {
-  content: "";
-  position: absolute;
-  left: 93px;
-  top: 8px;
-  bottom: 8px;
-  width: 2px;
-  background: #e4e7ec;
+  display: none;
 }
 
 .timeline-card .schedule-item {
@@ -1859,6 +1950,16 @@ body {
   color: #f8fafc;
 }
 
+#view-workout .day-number {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  margin: 0 auto;
+  border-radius: 999px;
+}
+
 #view-workout .day-cell.other-month {
   background: #151a24;
   color: #697386;
@@ -1874,12 +1975,26 @@ body {
   border-color: #f97316;
 }
 
+#view-workout .day-cell.has-workout .day-number {
+  background: #fb923c;
+  color: #111827;
+  font-weight: 900;
+  border-radius: 999px;
+}
+
+#view-workout .day-cell.has-workout.selected .day-number {
+  background: #ffffff;
+  color: #c2410c;
+}
+
 .workout-mini-day-dot {
   background: #fb923c;
 }
 
 #view-workout .nav-btn,
+#view-workout .calendar-today-btn,
 #view-workout-input .sub-btn,
+#view-workout-input .mini-action-btn,
 #view-workout .sub-btn,
 #view-workout-stats .sub-btn {
   border-color: #343b4a;
@@ -2032,12 +2147,12 @@ body {
   }
 
   .calendar-planner-card .day-cell {
-    min-height: 68px;
-    padding: 8px 6px;
+    min-height: 0;
+    padding: 0;
   }
 
   .calendar-planner-card .event-dot {
-    width: 12px;
+    display: none;
   }
 
   .timeline-card .schedule-list {
@@ -2095,7 +2210,7 @@ body {
   }
 
   .calendar-planner-card .day-cell {
-    min-height: 58px;
+    min-height: 0;
   }
 
   .calendar-planner-card .day-number {
@@ -2105,7 +2220,7 @@ body {
 
   .day-count {
     right: 5px;
-    top: 5px;
+    bottom: 5px;
     min-width: 18px;
     height: 18px;
     font-size: 11px;
@@ -2139,7 +2254,7 @@ body {
 }
 
 #view-workout-input .workout-entry-row-date {
-  grid-template-columns: 96px minmax(0, 1fr);
+  grid-template-columns: 96px minmax(0, 1fr) 86px;
   gap: 12px;
 }
 
@@ -2567,7 +2682,7 @@ body {
 
 .roll-picker-body.has-combined-input {
   grid-auto-flow: row;
-  grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
+  grid-template-columns: repeat(var(--roll-column-count, 2), minmax(0, 1fr));
 }
 
 .roll-combined-input-row {

@@ -29,6 +29,7 @@
           <div id="monthLabel" class="month-label"></div>
           <button id="nextMonthBtn" class="nav-btn" type="button" aria-label="次の月">›</button>
         </div>
+        <button id="todayMonthBtn" class="mini-action-btn calendar-today-btn" type="button">今日に戻る</button>
         <div class="weekday-row">
           <div>日</div><div>月</div><div>火</div><div>水</div><div>木</div><div>金</div><div>土</div>
         </div>
@@ -80,6 +81,11 @@
           <label for="content">内容</label>
           <textarea id="content" rows="8" placeholder="項目を選ぶとテンプレートが入ります。"></textarea>
         </div>
+        <div class="form-group">
+          <label for="calendarPhotoInput">写真</label>
+          <input id="calendarPhotoInput" type="file" accept="image/*" multiple />
+          <div id="calendarPhotoPreviewList" class="photo-preview-list"></div>
+        </div>
         <button id="saveRecordBtn" class="primary-btn" type="button">保存する</button>
       </section>
     </main>
@@ -99,13 +105,14 @@
       <section class="card workout-calendar-card">
         <div class="hidden">
           <button id="backToCalendarFromWorkoutBtn" class="sub-btn" type="button">← 戻る</button>
-          <input id="workoutDate" type="date" />
+          <input id="workoutDate" type="date" max="9999-12-31" />
         </div>
         <div class="calendar-header">
           <button id="workoutMiniPrevMonthBtn" class="nav-btn" type="button" aria-label="前の月">‹</button>
           <div id="workoutMiniMonthLabel" class="month-label"></div>
           <button id="workoutMiniNextMonthBtn" class="nav-btn" type="button" aria-label="次の月">›</button>
         </div>
+        <button id="workoutTodayBtn" class="mini-action-btn calendar-today-btn" type="button">今日に戻る</button>
         <div class="weekday-row">
           <div>日</div><div>月</div><div>火</div><div>水</div><div>木</div><div>金</div><div>土</div>
         </div>
@@ -140,7 +147,8 @@
             <button id="workoutInputDateChangeBtn" class="target-date-trigger hidden" type="button">
               <span id="workoutInputTargetDateLabel" class="target-date-label"></span>
             </button>
-            <input id="workoutDatePickerNative" type="date" class="target-date-input" />
+            <input id="workoutDatePickerNative" type="date" class="target-date-input" max="9999-12-31" />
+            <button id="setWorkoutDateTodayBtn" class="mini-action-btn" type="button">本日</button>
           </div>
         </div>
 
@@ -200,7 +208,7 @@
         <div class="workout-edit-meta-grid">
           <label class="edit-field">
             <span>日付</span>
-            <input id="workoutEditDatePickerBtn" class="target-date-input" type="date" />
+            <input id="workoutEditDatePickerBtn" class="target-date-input" type="date" max="9999-12-31" />
             <span id="workoutEditDatePickerLabel" class="hidden"></span>
             <input id="workoutEditDateInput" type="hidden" />
           </label>
@@ -259,7 +267,28 @@
         <div class="settings-tabs">
           <button id="showCalendarSettingsBtn" class="header-btn active-tab" type="button">カレンダー</button>
           <button id="showWorkoutSettingsBtn" class="header-btn" type="button">筋トレ</button>
+          <button id="showTransferSettingsBtn" class="header-btn" type="button">入出力</button>
         </div>
+      </section>
+
+      <section id="transferSettingsSection" class="settings-section hidden">
+        <section class="card">
+          <div class="settings-block">
+            <h3>CSVインポート / エクスポート</h3>
+            <div class="transfer-grid">
+              <label class="form-group">
+                <span>対象</span>
+                <select id="dataTransferTypeSelect">
+                  <option value="calendar">カレンダー</option>
+                  <option value="workout">筋トレ</option>
+                </select>
+              </label>
+              <button id="exportCsvBtn" class="sub-btn" type="button">エクスポート</button>
+              <button id="importCsvBtn" class="sub-btn" type="button">インポート</button>
+              <input id="importCsvInput" class="hidden" type="file" accept=".csv,text/csv" />
+            </div>
+          </div>
+        </section>
       </section>
 
       <section id="calendarSettingsSection" class="settings-section">
