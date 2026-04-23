@@ -204,6 +204,7 @@ const workoutSettingsSection = $("workoutSettingsSection");
 const transferSettingsSection = $("transferSettingsSection");
 const dataTransferTypeSelect = $("dataTransferTypeSelect");
 const exportCsvBtn = $("exportCsvBtn");
+const exportZipBtn = $("exportZipBtn");
 const importCsvBtn = $("importCsvBtn");
 const importCsvInput = $("importCsvInput");
 const newCategoryInput = $("newCategoryInput");
@@ -782,15 +783,11 @@ function ensureNumericInputAssist() {
       <strong data-numeric-assist-value>0</strong>
     </div>
     <div class="numeric-assist-control">
-      <button class="numeric-step-btn" type="button" data-numeric-step-down aria-label="減らす">‹</button>
       <input data-numeric-assist-range type="range" />
-      <button class="numeric-step-btn" type="button" data-numeric-step-up aria-label="増やす">›</button>
     </div>
   `;
   document.body.appendChild(numericAssist);
 
-  numericAssist.querySelector("[data-numeric-step-down]").addEventListener("click", () => nudgeNumericAssist(-1));
-  numericAssist.querySelector("[data-numeric-step-up]").addEventListener("click", () => nudgeNumericAssist(1));
   numericAssist.querySelector("[data-numeric-assist-range]").addEventListener("input", event => {
     if (!activeNumericAssistInput) return;
     const step = Number(activeNumericAssistInput.dataset.numericStep || activeNumericAssistInput.step || 1);
@@ -850,15 +847,6 @@ function hideNumericAssist() {
     if (numericAssist) numericAssist.classList.add("hidden");
     activeNumericAssistInput = null;
   }, 120);
-}
-
-function nudgeNumericAssist(direction) {
-  if (!activeNumericAssistInput) return;
-  const { min, max, step, value } = getNumericAssistRange(activeNumericAssistInput);
-  const next = Math.min(max, Math.max(min, value + (step * direction)));
-  activeNumericAssistInput.value = formatNumericAssistValue(next, step);
-  activeNumericAssistInput.dispatchEvent(new Event("input", { bubbles: true }));
-  syncNumericAssist();
 }
 
 function initNumericInputAssist() {
@@ -1208,6 +1196,10 @@ function parseJsonArray(value) {
 
 function downloadTextFile(fileName, text) {
   const blob = new Blob([`\uFEFF${text}`], { type: "text/csv;charset=utf-8" });
+  downloadBlob(fileName, blob);
+}
+
+function downloadBlob(fileName, blob) {
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
@@ -1216,6 +1208,209 @@ function downloadTextFile(fileName, text) {
   link.click();
   link.remove();
   URL.revokeObjectURL(url);
+}
+
+function sanitizeZipSegment(value, fallback = "データ") {
+  const text = String(value || "").trim() || fallback;
+  return text
+    .replace(/[\\/:*?"<>|\x00-\x1F]/g, "_")
+    .replace(/\s+/g, " ")
+    .slice(0, 80) || fallback;
+}
+
+function getPhotoExtension(photo = {}) {
+  const fromName = String(photo.name || "").match(/\.([a-zA-Z0-9]{2,5})$/)?.[1];
+  if (fromName) return fromName.toLowerCase();
+  const fromData = String(photo.dataUrl || "").match(/^data:image\/([^;,]+)/)?.[1];
+  if (!fromData) return "jpg";
+  return fromData === "jpeg" ? "jpg" : fromData.toLowerCase();
+}
+
+function dataUrlToBytes(dataUrl) {
+  const raw = String(dataUrl || "");
+  const commaIndex = raw.indexOf(",");
+  if (commaIndex < 0) return new Uint8Array();
+  const binary = atob(raw.slice(commaIndex + 1));
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return bytes;
+}
+
+const ZIP_CRC_TABLE = (() => {
+  const table = new Uint32Array(256);
+  for (let i = 0; i < 256; i++) {
+    let c = i;
+    for (let k = 0; k < 8; k++) c = (c & 1) ? (0xedb88320 ^ (c >>> 1)) : (c >>> 1);
+    table[i] = c >>> 0;
+  }
+  return table;
+})();
+
+function crc32(bytes) {
+  let crc = 0xffffffff;
+  for (let i = 0; i < bytes.length; i++) {
+    crc = ZIP_CRC_TABLE[(crc ^ bytes[i]) & 0xff] ^ (crc >>> 8);
+  }
+  return (crc ^ 0xffffffff) >>> 0;
+}
+
+function writeUint16(view, offset, value) {
+  view.setUint16(offset, value, true);
+}
+
+function writeUint32(view, offset, value) {
+  view.setUint32(offset, value >>> 0, true);
+}
+
+function getZipDosTime(date = new Date()) {
+  const time = (date.getHours() << 11) | (date.getMinutes() << 5) | Math.floor(date.getSeconds() / 2);
+  const dosDate = ((date.getFullYear() - 1980) << 9) | ((date.getMonth() + 1) << 5) | date.getDate();
+  return { time, date: dosDate };
+}
+
+function textToBytes(text) {
+  return new TextEncoder().encode(String(text ?? ""));
+}
+
+function createZipBlob(entries) {
+  const files = entries.map(entry => {
+    const nameBytes = textToBytes(entry.path);
+    const data = entry.data instanceof Uint8Array ? entry.data : textToBytes(entry.data);
+    const { time, date } = getZipDosTime(entry.date || new Date());
+    return { ...entry, nameBytes, data, time, date, crc: crc32(data) };
+  });
+
+  const chunks = [];
+  const centralChunks = [];
+  let offset = 0;
+
+  files.forEach(file => {
+    const local = new Uint8Array(30 + file.nameBytes.length);
+    const view = new DataView(local.buffer);
+    writeUint32(view, 0, 0x04034b50);
+    writeUint16(view, 4, 20);
+    writeUint16(view, 6, 0x0800);
+    writeUint16(view, 8, 0);
+    writeUint16(view, 10, file.time);
+    writeUint16(view, 12, file.date);
+    writeUint32(view, 14, file.crc);
+    writeUint32(view, 18, file.data.length);
+    writeUint32(view, 22, file.data.length);
+    writeUint16(view, 26, file.nameBytes.length);
+    writeUint16(view, 28, 0);
+    local.set(file.nameBytes, 30);
+    chunks.push(local, file.data);
+
+    const central = new Uint8Array(46 + file.nameBytes.length);
+    const centralView = new DataView(central.buffer);
+    writeUint32(centralView, 0, 0x02014b50);
+    writeUint16(centralView, 4, 20);
+    writeUint16(centralView, 6, 20);
+    writeUint16(centralView, 8, 0x0800);
+    writeUint16(centralView, 10, 0);
+    writeUint16(centralView, 12, file.time);
+    writeUint16(centralView, 14, file.date);
+    writeUint32(centralView, 16, file.crc);
+    writeUint32(centralView, 20, file.data.length);
+    writeUint32(centralView, 24, file.data.length);
+    writeUint16(centralView, 28, file.nameBytes.length);
+    writeUint16(centralView, 30, 0);
+    writeUint16(centralView, 32, 0);
+    writeUint16(centralView, 34, 0);
+    writeUint16(centralView, 36, 0);
+    writeUint32(centralView, 38, 0);
+    writeUint32(centralView, 42, offset);
+    central.set(file.nameBytes, 46);
+    centralChunks.push(central);
+
+    offset += local.length + file.data.length;
+  });
+
+  const centralOffset = offset;
+  const centralSize = centralChunks.reduce((sum, chunk) => sum + chunk.length, 0);
+  const end = new Uint8Array(22);
+  const endView = new DataView(end.buffer);
+  writeUint32(endView, 0, 0x06054b50);
+  writeUint16(endView, 4, 0);
+  writeUint16(endView, 6, 0);
+  writeUint16(endView, 8, files.length);
+  writeUint16(endView, 10, files.length);
+  writeUint32(endView, 12, centralSize);
+  writeUint32(endView, 16, centralOffset);
+  writeUint16(endView, 20, 0);
+
+  return new Blob([...chunks, ...centralChunks, end], { type: "application/zip" });
+}
+
+function exportCalendarZip() {
+  const schedules = getSchedules();
+  const categories = getCategories();
+  const entries = [];
+  const folderCounts = new Map();
+
+  Object.entries(schedules)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .forEach(([dateKey, items]) => {
+      (items || [])
+        .slice()
+        .sort((a, b) => String(a.start || "").localeCompare(String(b.start || "")) || (a.createdAt || 0) - (b.createdAt || 0))
+        .forEach((item, index) => {
+          const category = categories.find(categoryItem => categoryItem.id === item.categoryId);
+          const baseFolder = `記録カレンダー/${sanitizeZipSegment(dateKey, "日付")}/${sanitizeZipSegment(item.title || `記録${index + 1}`, "無題")}`;
+          const usedCount = folderCounts.get(baseFolder) || 0;
+          folderCounts.set(baseFolder, usedCount + 1);
+          const folder = usedCount ? `${baseFolder}_${usedCount + 1}` : baseFolder;
+          const dataFolder = `${folder}/データ`;
+          const start = splitDateTimeValue(item.start, dateKey);
+          const end = splitDateTimeValue(item.end, dateKey);
+          const photoNames = (item.photos || []).slice(0, 5).map((photo, photoIndex) => {
+            const ext = getPhotoExtension(photo);
+            const name = sanitizeZipSegment(photo.name ? photo.name.replace(/\.[^.]+$/, "") : `写真${photoIndex + 1}`, `写真${photoIndex + 1}`);
+            return `${name}.${ext}`;
+          });
+          const record = {
+            date: dateKey,
+            startTime: start.time,
+            endTime: end.time,
+            category: category?.name || item.categoryName || "未分類",
+            title: item.title || "",
+            content: item.content || "",
+            photos: photoNames,
+            createdAt: item.createdAt || null
+          };
+          entries.push({
+            path: `${dataFolder}/記録.json`,
+            data: textToBytes(JSON.stringify(record, null, 2))
+          });
+          entries.push({
+            path: `${dataFolder}/内容.txt`,
+            data: textToBytes([
+              `日付: ${dateKey}`,
+              `開始時間: ${start.time || "-"}`,
+              `終了時間: ${end.time || "-"}`,
+              `項目: ${record.category}`,
+              `タイトル: ${record.title || "-"}`,
+              "",
+              record.content || ""
+            ].join("\n"))
+          });
+          (item.photos || []).slice(0, 5).forEach((photo, photoIndex) => {
+            const bytes = dataUrlToBytes(photo.dataUrl);
+            if (!bytes.length) return;
+            entries.push({
+              path: `${dataFolder}/${photoNames[photoIndex]}`,
+              data: bytes
+            });
+          });
+        });
+    });
+
+  if (!entries.length) {
+    alert("ZIPに出力できるカレンダー記録がありません。");
+    return;
+  }
+
+  downloadBlob("記録カレンダー.zip", createZipBlob(entries));
 }
 
 function getCsvDateStamp() {
@@ -3435,6 +3630,13 @@ function bindEvents() {
   showWorkoutSettingsBtn.addEventListener("click", showWorkoutSettings);
   showTransferSettingsBtn.addEventListener("click", showTransferSettings);
   exportCsvBtn.addEventListener("click", exportSelectedCsv);
+  exportZipBtn.addEventListener("click", () => {
+    if (dataTransferTypeSelect.value !== "calendar") {
+      alert("ZIPエクスポートは写真付きカレンダー記録用です。対象をカレンダーにしてください。");
+      return;
+    }
+    exportCalendarZip();
+  });
   importCsvBtn.addEventListener("click", () => importCsvInput.click());
   importCsvInput.addEventListener("change", () => importSelectedCsv(importCsvInput.files?.[0]));
 
