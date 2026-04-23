@@ -1405,6 +1405,8 @@ canvas {
 
 /* Two-mode redesign */
 :root {
+  --page-bg-top: #f7fafc;
+  --page-bg-bottom: #eef3f7;
   --bg: #eef3f7;
   --card: #ffffff;
   --text: #172033;
@@ -1417,11 +1419,27 @@ canvas {
   --selected: #e6f4ff;
   --shadow: 0 10px 30px rgba(17, 24, 39, 0.08);
   --radius: 8px;
+  --workout-primary: #f97316;
+  --workout-primary-dark: #c2410c;
+  --workout-primary-light: #fff3e6;
+  --workout-accent: #fb923c;
+  --workout-chip: #fed7aa;
+  --workout-on-accent: #111827;
+  --workout-card: #121722;
+  --workout-card-alt: #1d2430;
+  --workout-surface: #151a24;
+  --workout-field: #0f141d;
+  --workout-line: #303746;
+  --workout-text: #f8fafc;
+  --workout-subtext: #b8c0cc;
+  --workout-today: #29251b;
+  --workout-selected: #3a2415;
+  --workout-other: #151a24;
 }
 
 body {
   background:
-    linear-gradient(180deg, #f7fafc 0, #eef3f7 260px),
+    linear-gradient(180deg, var(--page-bg-top) 0, var(--page-bg-bottom) 260px),
     var(--bg);
 }
 
@@ -3035,4 +3053,214 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
 .roll-picker-actions .primary-btn {
   min-height: 42px;
   border-radius: 8px;
+}
+
+/* Theme controls */
+.theme-preset-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 10px;
+}
+
+.theme-preset-btn {
+  display: grid;
+  gap: 8px;
+  min-height: 112px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--card);
+  color: var(--text);
+  padding: 12px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.theme-preset-btn.active {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary) 20%, transparent);
+}
+
+.theme-preset-btn strong {
+  font-size: 15px;
+  line-height: 1.2;
+}
+
+.theme-preset-btn small {
+  color: var(--subtext);
+  font-weight: 800;
+}
+
+.theme-swatch-row {
+  display: flex;
+  gap: 6px;
+}
+
+.theme-swatch-row i {
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+}
+
+/* Theme-driven workout colors */
+#view-workout,
+#view-workout-input,
+#view-workout-edit,
+#view-workout-stats {
+  --primary: var(--workout-primary);
+  --primary-dark: var(--workout-primary-dark);
+  --primary-light: var(--workout-primary-light);
+  --line: var(--workout-line);
+  --text: var(--workout-text);
+  --subtext: var(--workout-subtext);
+}
+
+.record-mode #view-workout-input.active .top-row,
+.record-mode #view-workout-edit.active .top-row {
+  border-bottom-color: var(--workout-line);
+  background: var(--workout-card);
+}
+
+#view-workout .card,
+#view-workout-input .card,
+#view-workout-edit .card,
+#view-workout-stats .card {
+  border-color: var(--workout-line) !important;
+  background: var(--workout-card) !important;
+  color: var(--workout-text) !important;
+}
+
+.workout-dashboard-card {
+  background:
+    radial-gradient(circle at 85% 12%, color-mix(in srgb, var(--workout-primary) 26%, transparent), transparent 30%),
+    linear-gradient(135deg, var(--workout-card), var(--workout-card-alt)) !important;
+}
+
+.workout-period-card {
+  background: color-mix(in srgb, var(--workout-text) 7%, transparent);
+}
+
+.workout-period-head strong,
+.workout-period-metrics strong,
+.workout-balance-row span,
+.workout-balance-row strong {
+  color: var(--workout-text);
+}
+
+.workout-period-head span,
+.cardio-form-sub,
+.edit-cardio-head strong,
+.rm-value,
+#view-workout-edit .edit-rm-box {
+  color: var(--workout-accent);
+}
+
+.workout-period-metrics span,
+.workout-balance-body,
+.workout-history-simple-body {
+  color: var(--workout-subtext);
+}
+
+.workout-balance-track i,
+.workout-mini-day-dot,
+#view-workout .day-cell.has-workout .day-number {
+  background: var(--workout-accent);
+}
+
+#view-workout .day-cell,
+#view-workout .mini-day-cell,
+#view-workout .nav-btn,
+#view-workout .calendar-today-btn,
+.workout-history-simple,
+.detail-log-card,
+.edit-set-card,
+.cardio-form-card,
+.workout-record-panel,
+.workout-timer-action-panel {
+  border-color: var(--workout-line) !important;
+  background: var(--workout-card-alt) !important;
+  color: var(--workout-text) !important;
+}
+
+#view-workout .day-cell.other-month {
+  background: var(--workout-other) !important;
+}
+
+#view-workout .day-cell.today {
+  background: var(--workout-today) !important;
+}
+
+#view-workout .day-cell.selected {
+  background: var(--workout-selected) !important;
+  border-color: var(--workout-primary) !important;
+}
+
+#view-workout .primary-btn,
+#view-workout-input .primary-btn,
+#view-workout-edit .primary-btn {
+  background: linear-gradient(180deg, var(--workout-accent), var(--workout-primary)) !important;
+  color: var(--workout-on-accent) !important;
+}
+
+#view-workout-input input:not([type="checkbox"]),
+#view-workout-input select,
+#view-workout-input textarea,
+#view-workout-input .target-date-trigger,
+#view-workout-input .target-date-input,
+#view-workout-input .roll-field-btn,
+#view-workout-edit input:not([type="checkbox"]),
+#view-workout-edit select,
+#view-workout-edit textarea,
+#view-workout-edit .roll-field-btn,
+.metric-number-input,
+.roll-combined-input,
+.roll-direct-input,
+.roll-select {
+  border-color: var(--workout-line) !important;
+  background: var(--workout-field) !important;
+  color: var(--workout-text) !important;
+}
+
+/* iPhone date input centering */
+#view-workout-input .target-date-input,
+#view-workout-edit .target-date-input {
+  height: 44px;
+  min-height: 44px;
+  line-height: 44px !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#view-workout-input input[type="date"]::-webkit-date-and-time-value,
+#view-workout-edit input[type="date"]::-webkit-date-and-time-value {
+  min-height: 44px;
+  line-height: 44px;
+  padding: 0;
+  margin: 0;
+  text-align: center;
+}
+
+/* Keep status labels on one line by letting values shrink first */
+.workout-period-metrics div {
+  gap: 8px;
+}
+
+.workout-period-metrics span {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+.workout-period-metrics strong {
+  min-width: 0;
+  font-size: clamp(14px, 3.4vw, 18px);
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
+.cardio-month-card .workout-period-head strong {
+  font-size: 15px;
+  white-space: nowrap;
 }

@@ -3,6 +3,7 @@ const STORAGE_CATEGORY_KEY = "memoryCalendarCategories_v6";
 const STORAGE_WORKOUT_MASTER_KEY = "memoryCalendarWorkoutMasters_v3";
 const STORAGE_WORKOUT_SESSION_KEY = "memoryCalendarWorkoutSessions_v3";
 const STORAGE_WORKOUT_UI_SETTINGS_KEY = "memoryCalendarWorkoutUiSettings_v1";
+const STORAGE_THEME_KEY = "memoryCalendarTheme_v1";
 
 const DEFAULT_TEMPLATE = "【大項目】\n- \n\n【小項目】\n- \n\n【内容】\n- ";
 
@@ -30,6 +31,369 @@ const DEFAULT_WORKOUT_UI_SETTINGS = {
   defaultSets: 3,
   defaultRestSec: 60
 };
+
+const THEME_PRESETS = [
+  {
+    id: "blue-orange",
+    name: "白青 × 黒橙",
+    note: "今の標準",
+    colors: ["#1677ff", "#f97316", "#eef3f7"],
+    vars: {
+      "--page-bg-top": "#f7fafc",
+      "--page-bg-bottom": "#eef3f7",
+      "--bg": "#eef3f7",
+      "--card": "#ffffff",
+      "--text": "#172033",
+      "--subtext": "#667085",
+      "--line": "#d9e2ec",
+      "--primary": "#1677ff",
+      "--primary-dark": "#0958d9",
+      "--primary-light": "#eaf3ff",
+      "--today": "#fff8e7",
+      "--selected": "#e6f4ff",
+      "--workout-primary": "#f97316",
+      "--workout-primary-dark": "#c2410c",
+      "--workout-primary-light": "#fff3e6",
+      "--workout-accent": "#fb923c",
+      "--workout-chip": "#fed7aa",
+      "--workout-on-accent": "#111827",
+      "--workout-card": "#121722",
+      "--workout-card-alt": "#1d2430",
+      "--workout-surface": "#151a24",
+      "--workout-field": "#0f141d",
+      "--workout-line": "#303746",
+      "--workout-text": "#f8fafc",
+      "--workout-subtext": "#b8c0cc",
+      "--workout-today": "#29251b",
+      "--workout-selected": "#3a2415",
+      "--workout-other": "#151a24"
+    }
+  },
+  {
+    id: "mint-charcoal",
+    name: "ミント × チャコール",
+    note: "爽やか",
+    colors: ["#059669", "#34d399", "#edf8f3"],
+    vars: {
+      "--page-bg-top": "#f5fbf7",
+      "--page-bg-bottom": "#edf8f3",
+      "--bg": "#edf8f3",
+      "--card": "#ffffff",
+      "--text": "#10231b",
+      "--subtext": "#5f716a",
+      "--line": "#d6e7df",
+      "--primary": "#059669",
+      "--primary-dark": "#047857",
+      "--primary-light": "#dff8ed",
+      "--today": "#fff7ed",
+      "--selected": "#dff8ed",
+      "--workout-primary": "#34d399",
+      "--workout-primary-dark": "#059669",
+      "--workout-primary-light": "#d1fae5",
+      "--workout-accent": "#6ee7b7",
+      "--workout-chip": "#bbf7d0",
+      "--workout-on-accent": "#052e1a",
+      "--workout-card": "#0e1916",
+      "--workout-card-alt": "#16231f",
+      "--workout-surface": "#101d19",
+      "--workout-field": "#0a1411",
+      "--workout-line": "#29443a",
+      "--workout-text": "#f4fff9",
+      "--workout-subtext": "#b8d8cc",
+      "--workout-today": "#183328",
+      "--workout-selected": "#124030",
+      "--workout-other": "#0d1714"
+    }
+  },
+  {
+    id: "rose-navy",
+    name: "ローズ × ネイビー",
+    note: "強め",
+    colors: ["#e11d48", "#fb7185", "#fff1f4"],
+    vars: {
+      "--page-bg-top": "#fff7f9",
+      "--page-bg-bottom": "#fff1f4",
+      "--bg": "#fff1f4",
+      "--card": "#ffffff",
+      "--text": "#2b1720",
+      "--subtext": "#755f68",
+      "--line": "#f3d0d9",
+      "--primary": "#e11d48",
+      "--primary-dark": "#be123c",
+      "--primary-light": "#ffe4ea",
+      "--today": "#fff7ed",
+      "--selected": "#ffe4ea",
+      "--workout-primary": "#fb7185",
+      "--workout-primary-dark": "#e11d48",
+      "--workout-primary-light": "#ffe4ea",
+      "--workout-accent": "#fda4af",
+      "--workout-chip": "#fecdd3",
+      "--workout-on-accent": "#3b0714",
+      "--workout-card": "#111827",
+      "--workout-card-alt": "#1b2433",
+      "--workout-surface": "#151d2a",
+      "--workout-field": "#0c1220",
+      "--workout-line": "#334155",
+      "--workout-text": "#f8fafc",
+      "--workout-subtext": "#cbd5e1",
+      "--workout-today": "#33202b",
+      "--workout-selected": "#3f1d2b",
+      "--workout-other": "#111827"
+    }
+  },
+  {
+    id: "violet-gold",
+    name: "紫 × ゴールド",
+    note: "集中",
+    colors: ["#7c3aed", "#f59e0b", "#f5f1ff"],
+    vars: {
+      "--page-bg-top": "#fbf8ff",
+      "--page-bg-bottom": "#f5f1ff",
+      "--bg": "#f5f1ff",
+      "--card": "#ffffff",
+      "--text": "#221838",
+      "--subtext": "#716588",
+      "--line": "#ded4f3",
+      "--primary": "#7c3aed",
+      "--primary-dark": "#5b21b6",
+      "--primary-light": "#ede9fe",
+      "--today": "#fff7ed",
+      "--selected": "#ede9fe",
+      "--workout-primary": "#f59e0b",
+      "--workout-primary-dark": "#b45309",
+      "--workout-primary-light": "#fef3c7",
+      "--workout-accent": "#fbbf24",
+      "--workout-chip": "#fde68a",
+      "--workout-on-accent": "#241a05",
+      "--workout-card": "#171224",
+      "--workout-card-alt": "#231a34",
+      "--workout-surface": "#1b162b",
+      "--workout-field": "#110d1d",
+      "--workout-line": "#3e3356",
+      "--workout-text": "#fbf7ff",
+      "--workout-subtext": "#d5c7ed",
+      "--workout-today": "#332715",
+      "--workout-selected": "#44280a",
+      "--workout-other": "#151120"
+    }
+  },
+  {
+    id: "sky-lime",
+    name: "スカイ × ライム",
+    note: "軽快",
+    colors: ["#0284c7", "#84cc16", "#edf8ff"],
+    vars: {
+      "--page-bg-top": "#f6fbff",
+      "--page-bg-bottom": "#edf8ff",
+      "--bg": "#edf8ff",
+      "--card": "#ffffff",
+      "--text": "#102536",
+      "--subtext": "#607285",
+      "--line": "#d2e7f4",
+      "--primary": "#0284c7",
+      "--primary-dark": "#0369a1",
+      "--primary-light": "#e0f2fe",
+      "--today": "#f7fee7",
+      "--selected": "#e0f2fe",
+      "--workout-primary": "#84cc16",
+      "--workout-primary-dark": "#4d7c0f",
+      "--workout-primary-light": "#ecfccb",
+      "--workout-accent": "#a3e635",
+      "--workout-chip": "#d9f99d",
+      "--workout-on-accent": "#142300",
+      "--workout-card": "#0c1720",
+      "--workout-card-alt": "#142434",
+      "--workout-surface": "#101c27",
+      "--workout-field": "#08121a",
+      "--workout-line": "#294052",
+      "--workout-text": "#f5fbff",
+      "--workout-subtext": "#bdd3e3",
+      "--workout-today": "#253114",
+      "--workout-selected": "#30410f",
+      "--workout-other": "#0b151e"
+    }
+  },
+  {
+    id: "indigo-cyan",
+    name: "藍 × シアン",
+    note: "デジタル",
+    colors: ["#4f46e5", "#06b6d4", "#eef2ff"],
+    vars: {
+      "--page-bg-top": "#f8f9ff",
+      "--page-bg-bottom": "#eef2ff",
+      "--bg": "#eef2ff",
+      "--card": "#ffffff",
+      "--text": "#1d2140",
+      "--subtext": "#646b8c",
+      "--line": "#d7dcf4",
+      "--primary": "#4f46e5",
+      "--primary-dark": "#3730a3",
+      "--primary-light": "#e0e7ff",
+      "--today": "#ecfeff",
+      "--selected": "#e0e7ff",
+      "--workout-primary": "#06b6d4",
+      "--workout-primary-dark": "#0e7490",
+      "--workout-primary-light": "#cffafe",
+      "--workout-accent": "#22d3ee",
+      "--workout-chip": "#a5f3fc",
+      "--workout-on-accent": "#06252b",
+      "--workout-card": "#101526",
+      "--workout-card-alt": "#182038",
+      "--workout-surface": "#121a2e",
+      "--workout-field": "#0b1020",
+      "--workout-line": "#303a5c",
+      "--workout-text": "#f8fbff",
+      "--workout-subtext": "#c7d2fe",
+      "--workout-today": "#12333a",
+      "--workout-selected": "#0c3b48",
+      "--workout-other": "#0f1628"
+    }
+  },
+  {
+    id: "slate-red",
+    name: "スレート × 赤",
+    note: "硬派",
+    colors: ["#475569", "#ef4444", "#f1f5f9"],
+    vars: {
+      "--page-bg-top": "#f8fafc",
+      "--page-bg-bottom": "#f1f5f9",
+      "--bg": "#f1f5f9",
+      "--card": "#ffffff",
+      "--text": "#1e293b",
+      "--subtext": "#64748b",
+      "--line": "#dbe3ee",
+      "--primary": "#475569",
+      "--primary-dark": "#334155",
+      "--primary-light": "#e2e8f0",
+      "--today": "#fef2f2",
+      "--selected": "#e2e8f0",
+      "--workout-primary": "#ef4444",
+      "--workout-primary-dark": "#b91c1c",
+      "--workout-primary-light": "#fee2e2",
+      "--workout-accent": "#f87171",
+      "--workout-chip": "#fecaca",
+      "--workout-on-accent": "#2a0909",
+      "--workout-card": "#111827",
+      "--workout-card-alt": "#1f2937",
+      "--workout-surface": "#17202d",
+      "--workout-field": "#0b1220",
+      "--workout-line": "#374151",
+      "--workout-text": "#f8fafc",
+      "--workout-subtext": "#cbd5e1",
+      "--workout-today": "#332020",
+      "--workout-selected": "#421c1c",
+      "--workout-other": "#111827"
+    }
+  },
+  {
+    id: "teal-amber",
+    name: "ティール × 琥珀",
+    note: "落ち着き",
+    colors: ["#0f766e", "#d97706", "#effaf8"],
+    vars: {
+      "--page-bg-top": "#f6fffc",
+      "--page-bg-bottom": "#effaf8",
+      "--bg": "#effaf8",
+      "--card": "#ffffff",
+      "--text": "#102522",
+      "--subtext": "#5f7470",
+      "--line": "#d4e9e4",
+      "--primary": "#0f766e",
+      "--primary-dark": "#115e59",
+      "--primary-light": "#ccfbf1",
+      "--today": "#fff7ed",
+      "--selected": "#ccfbf1",
+      "--workout-primary": "#d97706",
+      "--workout-primary-dark": "#92400e",
+      "--workout-primary-light": "#ffedd5",
+      "--workout-accent": "#f59e0b",
+      "--workout-chip": "#fed7aa",
+      "--workout-on-accent": "#271604",
+      "--workout-card": "#101817",
+      "--workout-card-alt": "#1a2422",
+      "--workout-surface": "#121d1b",
+      "--workout-field": "#0a1413",
+      "--workout-line": "#2d4641",
+      "--workout-text": "#f7fffd",
+      "--workout-subtext": "#bfd8d3",
+      "--workout-today": "#322816",
+      "--workout-selected": "#41290d",
+      "--workout-other": "#0d1715"
+    }
+  },
+  {
+    id: "mono-blue",
+    name: "モノ × ブルー",
+    note: "視認性",
+    colors: ["#2563eb", "#60a5fa", "#f3f4f6"],
+    vars: {
+      "--page-bg-top": "#fafafa",
+      "--page-bg-bottom": "#f3f4f6",
+      "--bg": "#f3f4f6",
+      "--card": "#ffffff",
+      "--text": "#111827",
+      "--subtext": "#6b7280",
+      "--line": "#d1d5db",
+      "--primary": "#2563eb",
+      "--primary-dark": "#1d4ed8",
+      "--primary-light": "#dbeafe",
+      "--today": "#eff6ff",
+      "--selected": "#dbeafe",
+      "--workout-primary": "#60a5fa",
+      "--workout-primary-dark": "#2563eb",
+      "--workout-primary-light": "#dbeafe",
+      "--workout-accent": "#93c5fd",
+      "--workout-chip": "#bfdbfe",
+      "--workout-on-accent": "#0b1d38",
+      "--workout-card": "#111827",
+      "--workout-card-alt": "#1f2937",
+      "--workout-surface": "#17202d",
+      "--workout-field": "#0b1220",
+      "--workout-line": "#374151",
+      "--workout-text": "#f9fafb",
+      "--workout-subtext": "#d1d5db",
+      "--workout-today": "#172842",
+      "--workout-selected": "#12305d",
+      "--workout-other": "#111827"
+    }
+  },
+  {
+    id: "sakura-ink",
+    name: "桜 × 墨",
+    note: "やわらか",
+    colors: ["#db2777", "#f472b6", "#fff5f8"],
+    vars: {
+      "--page-bg-top": "#fffafb",
+      "--page-bg-bottom": "#fff5f8",
+      "--bg": "#fff5f8",
+      "--card": "#ffffff",
+      "--text": "#2b1722",
+      "--subtext": "#76616b",
+      "--line": "#f0d7df",
+      "--primary": "#db2777",
+      "--primary-dark": "#be185d",
+      "--primary-light": "#fce7f3",
+      "--today": "#fff7ed",
+      "--selected": "#fce7f3",
+      "--workout-primary": "#f472b6",
+      "--workout-primary-dark": "#db2777",
+      "--workout-primary-light": "#fce7f3",
+      "--workout-accent": "#f9a8d4",
+      "--workout-chip": "#fbcfe8",
+      "--workout-on-accent": "#3b0a22",
+      "--workout-card": "#161419",
+      "--workout-card-alt": "#241d25",
+      "--workout-surface": "#1b171e",
+      "--workout-field": "#100d12",
+      "--workout-line": "#403541",
+      "--workout-text": "#fff7fb",
+      "--workout-subtext": "#e8ccda",
+      "--workout-today": "#33202b",
+      "--workout-selected": "#432035",
+      "--workout-other": "#151216"
+    }
+  }
+];
 
 const CATEGORY_NAME_REPAIRS = {
   "讌ｭ蜍咏畑": "業務用",
@@ -198,10 +562,13 @@ const statsSummary = $("statsSummary");
 const backToCalendarFromSettingsBtn = $("backToCalendarFromSettingsBtn");
 const showCalendarSettingsBtn = $("showCalendarSettingsBtn");
 const showWorkoutSettingsBtn = $("showWorkoutSettingsBtn");
+const showThemeSettingsBtn = $("showThemeSettingsBtn");
 const showTransferSettingsBtn = $("showTransferSettingsBtn");
 const calendarSettingsSection = $("calendarSettingsSection");
 const workoutSettingsSection = $("workoutSettingsSection");
+const themeSettingsSection = $("themeSettingsSection");
 const transferSettingsSection = $("transferSettingsSection");
+const themePresetList = $("themePresetList");
 const dataTransferTypeSelect = $("dataTransferTypeSelect");
 const exportCsvBtn = $("exportCsvBtn");
 const exportZipBtn = $("exportZipBtn");
@@ -349,6 +716,34 @@ function saveWorkoutUiSettings(data) {
   writeStorage(STORAGE_WORKOUT_UI_SETTINGS_KEY, normalized);
 }
 
+function getThemeSettings() {
+  const parsed = readStorage(STORAGE_THEME_KEY, {});
+  const themeId = parsed?.themeId || THEME_PRESETS[0].id;
+  return THEME_PRESETS.some(theme => theme.id === themeId)
+    ? { themeId }
+    : { themeId: THEME_PRESETS[0].id };
+}
+
+function saveThemeSettings(themeId) {
+  const safeThemeId = THEME_PRESETS.some(theme => theme.id === themeId) ? themeId : THEME_PRESETS[0].id;
+  writeStorage(STORAGE_THEME_KEY, { themeId: safeThemeId });
+  applyThemeSettings();
+  renderThemeSettings();
+}
+
+function getCurrentThemePreset() {
+  const { themeId } = getThemeSettings();
+  return THEME_PRESETS.find(theme => theme.id === themeId) || THEME_PRESETS[0];
+}
+
+function applyThemeSettings() {
+  const theme = getCurrentThemePreset();
+  Object.entries(theme.vars).forEach(([name, value]) => {
+    document.documentElement.style.setProperty(name, value);
+  });
+  document.body.dataset.theme = theme.id;
+}
+
 function formatDateKey(dateObj) {
   const y = dateObj.getFullYear();
   const m = String(dateObj.getMonth() + 1).padStart(2, "0");
@@ -405,6 +800,14 @@ function formatSeconds(sec) {
   const mm = String(Math.floor(total / 60)).padStart(2, "0");
   const ss = String(total % 60).padStart(2, "0");
   return `${mm}:${ss}`;
+}
+
+function formatHms(sec) {
+  const total = Math.max(0, Math.floor(Number(sec || 0)));
+  const hh = String(Math.floor(total / 3600)).padStart(2, "0");
+  const mm = String(Math.floor((total % 3600) / 60)).padStart(2, "0");
+  const ss = String(total % 60).padStart(2, "0");
+  return `${hh}:${mm}:${ss}`;
 }
 
 function formatWeightNumber(value) {
@@ -638,27 +1041,38 @@ function parseDurationInputValue(value) {
   const raw = String(value || "").trim();
   if (!raw) return 0;
   if (raw.includes(":")) {
-    const [m, s] = raw.split(":").map(part => Number(part.replace(/\D/g, "") || 0));
-    return Math.max(0, Math.floor(Number(m || 0) * 60 + Number(s || 0)));
+    const parts = raw.split(":").map(part => Number(part.replace(/\D/g, "") || 0));
+    if (parts.length >= 3) {
+      const [h, m, s] = parts;
+      return Math.max(0, Math.floor((Number(h || 0) * 3600) + (Number(m || 0) * 60) + Math.min(59, Number(s || 0))));
+    }
+    const [m, s] = parts;
+    return Math.max(0, Math.floor(Number(m || 0) * 60 + Math.min(59, Number(s || 0))));
   }
   const compact = raw.replace(/\D/g, "");
   if (!compact) return 0;
   if (compact.length <= 2) return Math.max(0, Number(compact) * 60);
-  const minutes = Number(compact.slice(0, -2) || 0);
+  if (compact.length <= 4) {
+    const minutes = Number(compact.slice(0, -2) || 0);
+    const seconds = Number(compact.slice(-2) || 0);
+    return Math.max(0, Math.floor((minutes * 60) + Math.min(59, seconds)));
+  }
+  const hours = Number(compact.slice(0, -4) || 0);
+  const minutes = Number(compact.slice(-4, -2) || 0);
   const seconds = Number(compact.slice(-2) || 0);
-  return Math.max(0, Math.floor((minutes * 60) + Math.min(59, seconds)));
+  return Math.max(0, Math.floor((hours * 3600) + (Math.min(59, minutes) * 60) + Math.min(59, seconds)));
 }
 
-function bindDurationDirectInput(input) {
+function bindDurationDirectInput(input, useLongFormat = false) {
   if (!input) return;
   input.addEventListener("input", () => {
-    input.value = input.value.replace(/[^\d:]/g, "").slice(0, 5);
+    input.value = input.value.replace(/[^\d:]/g, "").slice(0, useLongFormat ? 8 : 5);
   });
   input.addEventListener("change", () => {
-    input.value = formatSeconds(parseDurationInputValue(input.value));
+    input.value = useLongFormat ? formatHms(parseDurationInputValue(input.value)) : formatSeconds(parseDurationInputValue(input.value));
   });
   input.addEventListener("blur", () => {
-    input.value = formatSeconds(parseDurationInputValue(input.value));
+    input.value = useLongFormat ? formatHms(parseDurationInputValue(input.value)) : formatSeconds(parseDurationInputValue(input.value));
   });
 }
 
@@ -1455,7 +1869,12 @@ function parseCsvDuration(value) {
   const raw = String(value || "").trim();
   if (!raw) return 0;
   if (raw.includes(":")) {
-    const [m, s] = raw.split(":").map(Number);
+    const parts = raw.split(":").map(Number);
+    if (parts.length >= 3) {
+      const [h, m, s] = parts;
+      return Math.max(0, (Number(h || 0) * 3600) + (Number(m || 0) * 60) + Number(s || 0));
+    }
+    const [m, s] = parts;
     return Math.max(0, (Number(m || 0) * 60) + Number(s || 0));
   }
   return Math.max(0, Number(raw || 0));
@@ -1514,7 +1933,7 @@ function exportWorkoutCsv() {
       `休憩時間(${setNo}セット)`
     );
   }
-  headers.push("有酸素時間", "距離/段数", "距離単位", "スピード/ペース", "スピード単位", "平均心拍数", "最大心拍数", "有酸素メモ");
+  headers.push("有酸素時間", "距離/段数", "距離単位", "スピード/ペース", "スピード単位", "カロリー", "平均心拍数", "最大心拍数", "有酸素メモ");
   const rows = items.map(item => {
     const cardio = item.cardioData || {};
     const config = getCardioMetricConfig(item.exercise);
@@ -1534,11 +1953,12 @@ function exportWorkoutCsv() {
       row[`実施時間(${setNo}セット)`] = log.workSec != null && log.workSec !== "" ? formatSeconds(log.workSec) : "";
       row[`休憩時間(${setNo}セット)`] = log.restSec != null && log.restSec !== "" ? formatSeconds(log.restSec) : "";
     }
-    row["有酸素時間"] = isCardioSession(item) ? formatSeconds(cardio.durationSec || 0) : "";
+    row["有酸素時間"] = isCardioSession(item) ? formatHms(cardio.durationSec || 0) : "";
     row["距離/段数"] = isCardioSession(item) ? (cardio.distance || "") : "";
     row["距離単位"] = isCardioSession(item) ? (cardio.distanceUnit || config.distanceUnit) : "";
     row["スピード/ペース"] = isCardioSession(item) ? (cardio.speed || "") : "";
     row["スピード単位"] = isCardioSession(item) ? (cardio.speedUnit || config.speedUnit) : "";
+    row["カロリー"] = isCardioSession(item) ? (cardio.calories || "") : "";
     row["平均心拍数"] = isCardioSession(item) ? (cardio.avgHeartRate || "") : "";
     row["最大心拍数"] = isCardioSession(item) ? (cardio.maxHeartRate || "") : "";
     row["有酸素メモ"] = isCardioSession(item) ? (cardio.memo || item.memo || "") : "";
@@ -1603,6 +2023,7 @@ function importWorkoutCsv(text) {
       !!row["有酸素時間"] ||
       !!row["距離/段数"] ||
       !!row["スピード/ペース"] ||
+      !!row["カロリー"] ||
       !!row["平均心拍数"] ||
       !!row["最大心拍数"] ||
       !!row["有酸素メモ"];
@@ -1648,6 +2069,7 @@ function importWorkoutCsv(text) {
         distanceUnit: row["距離単位"] || config.distanceUnit,
         speed: normalizeCardioNumber(row["スピード/ペース"] || row.cardioSpeed, (row["スピード単位"] || config.speedUnit) === "段/分" ? 0 : 1),
         speedUnit: row["スピード単位"] || config.speedUnit,
+        calories: normalizeCardioNumber(row["カロリー"] || row.calories, 0),
         avgHeartRate: normalizeCardioNumber(row["平均心拍数"] || row.avgHeartRate, 0),
         maxHeartRate: normalizeCardioNumber(row["最大心拍数"] || row.maxHeartRate, 0),
         memo: row["有酸素メモ"] || row.memo || ""
@@ -2070,6 +2492,7 @@ function getCardioFormData(scope = cardioFormsWrap) {
       distanceUnit: config.distanceUnit,
       speed: "",
       speedUnit: config.speedUnit,
+      calories: "",
       avgHeartRate: "",
       maxHeartRate: "",
       memo: ""
@@ -2083,6 +2506,7 @@ function getCardioFormData(scope = cardioFormsWrap) {
     distanceUnit: config.distanceUnit,
     speed: normalizeCardioNumber(form.querySelector("[data-cardio-speed]")?.value, config.speedStep === "1" ? 0 : 1),
     speedUnit: config.speedUnit,
+    calories: normalizeCardioNumber(form.querySelector("[data-cardio-calories]")?.value, 0),
     avgHeartRate: normalizeCardioNumber(form.querySelector("[data-cardio-avg-hr]")?.value, 0),
     maxHeartRate: normalizeCardioNumber(form.querySelector("[data-cardio-max-hr]")?.value, 0),
     memo: form.querySelector("[data-cardio-memo]")?.value || ""
@@ -2097,6 +2521,7 @@ function buildCardioForm(preset = null) {
   const durationSec = Math.max(0, Math.floor(Number(current.durationSec || 0)));
   const distanceValue = normalizeCardioNumber(current.distance, config.distanceStep === "1" ? 0 : 1);
   const speedValue = normalizeCardioNumber(current.speed, config.speedStep === "1" ? 0 : 1);
+  const caloriesValue = normalizeCardioNumber(current.calories, 0);
 
   cardioFormsWrap.innerHTML = `
     <article class="set-form-item cardio-form-card" data-cardio-form>
@@ -2107,7 +2532,7 @@ function buildCardioForm(preset = null) {
       <div class="cardio-grid">
         <label class="cardio-field cardio-duration-field">
           <span>時間</span>
-          <input class="metric-number-input duration-direct-input" type="text" inputmode="numeric" data-cardio-duration value="${escapeAttr(formatSeconds(durationSec))}" placeholder="00:00" />
+          <input class="metric-number-input duration-direct-input" type="text" inputmode="numeric" data-cardio-duration value="${escapeAttr(formatHms(durationSec))}" placeholder="00:00:00" />
         </label>
         <label class="cardio-field">
           <span>${escapeHtml(config.distanceLabel)}</span>
@@ -2121,6 +2546,13 @@ function buildCardioForm(preset = null) {
           <div class="unit-input-wrap">
             <input type="number" inputmode="decimal" min="0" max="300" step="${escapeAttr(config.speedStep)}" data-cardio-speed value="${escapeAttr(speedValue)}" placeholder="${escapeAttr(config.speedPlaceholder)}" data-numeric-assist data-numeric-label="${escapeAttr(config.speedLabel)}" data-numeric-step="${escapeAttr(config.speedStep)}" data-numeric-min="0" data-numeric-max="300" />
             <em>${escapeHtml(config.speedUnit)}</em>
+          </div>
+        </label>
+        <label class="cardio-field">
+          <span>カロリー</span>
+          <div class="unit-input-wrap">
+            <input type="number" inputmode="numeric" min="0" max="5000" step="1" data-cardio-calories value="${escapeAttr(caloriesValue)}" placeholder="250" data-numeric-assist data-numeric-label="カロリー" data-numeric-step="1" data-numeric-min="0" data-numeric-max="5000" />
+            <em>kcal</em>
           </div>
         </label>
         <label class="cardio-field">
@@ -2147,7 +2579,7 @@ function buildCardioForm(preset = null) {
   `;
 
   const form = cardioFormsWrap.querySelector("[data-cardio-form]");
-  bindDurationDirectInput(form.querySelector("[data-cardio-duration]"));
+  bindDurationDirectInput(form.querySelector("[data-cardio-duration]"), true);
   form.querySelector("[data-save-cardio]").addEventListener("click", () => saveWorkoutSession(false));
 }
 
@@ -2487,6 +2919,7 @@ function saveWorkoutSession(isAutoSave = false) {
     const hasCardioRecord = Number(cardioData.durationSec || 0) > 0 ||
       Number(cardioData.distance || 0) > 0 ||
       Number(cardioData.speed || 0) > 0 ||
+      Number(cardioData.calories || 0) > 0 ||
       Number(cardioData.avgHeartRate || 0) > 0 ||
       Number(cardioData.maxHeartRate || 0) > 0 ||
       !!cardioData.memo.trim();
@@ -2620,46 +3053,43 @@ function renderWorkoutPeriodCard(label, subText, summary) {
   `;
 }
 
-function renderWorkoutBalanceCard(items) {
-  const balance = new Map();
-  items.forEach(item => {
-    const part = item.bodyPart || "未分類";
-    const volume = calcWorkoutTotalVolume(item.setLogs || []);
-    balance.set(part, (balance.get(part) || 0) + volume);
-  });
-  const sortedRows = [...balance.entries()].sort((a, b) => b[1] - a[1]);
-  const total = sortedRows.reduce((sum, [, value]) => sum + value, 0);
-  const rows = sortedRows.slice(0, 3);
+function summarizeCardioItems(items) {
+  const cardioItems = items.filter(isCardioSession);
+  const heartRates = cardioItems
+    .map(item => Number(item.cardioData?.avgHeartRate || 0))
+    .filter(value => value > 0);
+  return {
+    count: cardioItems.length,
+    totalDuration: cardioItems.reduce((sum, item) => sum + Number(item.cardioData?.durationSec || 0), 0),
+    totalCalories: cardioItems.reduce((sum, item) => sum + Number(item.cardioData?.calories || 0), 0),
+    averageHeartRate: heartRates.length
+      ? Math.round(heartRates.reduce((sum, value) => sum + value, 0) / heartRates.length)
+      : 0
+  };
+}
 
-  if (!rows.length || total <= 0) {
-    return `
-      <article class="workout-period-card workout-balance-card">
-        <div class="workout-period-head">
-          <strong>部位バランス</strong>
-          <span>-</span>
-        </div>
-        <div class="workout-balance-body">この月の記録がありません。</div>
-      </article>
-    `;
-  }
+function renderWorkoutCardioMonthCard(items) {
+  const summary = summarizeCardioItems(items);
 
   return `
-    <article class="workout-period-card workout-balance-card">
+    <article class="workout-period-card workout-balance-card cardio-month-card">
       <div class="workout-period-head">
-        <strong>部位バランス</strong>
-        <span>上位${rows.length}</span>
+        <strong>有酸素運動について</strong>
+        <span>1か月</span>
       </div>
-      <div class="workout-balance-body">
-        ${rows.map(([part, value]) => {
-          const percent = Math.round((value / total) * 100);
-          return `
-            <div class="workout-balance-row">
-              <span>${escapeHtml(part)}</span>
-              <div class="workout-balance-track"><i style="width:${percent}%"></i></div>
-              <strong>${percent}%</strong>
-            </div>
-          `;
-        }).join("")}
+      <div class="workout-period-metrics">
+        <div>
+          <span>時間</span>
+          <strong>${summary.count ? formatHms(summary.totalDuration) : "-"}</strong>
+        </div>
+        <div>
+          <span>カロリー</span>
+          <strong>${summary.count ? `${formatWeightNumber(summary.totalCalories)}kcal` : "-"}</strong>
+        </div>
+        <div>
+          <span>心拍数</span>
+          <strong>${summary.averageHeartRate ? `${summary.averageHeartRate}bpm` : "-"}</strong>
+        </div>
       </div>
     </article>
   `;
@@ -2680,7 +3110,7 @@ function renderWorkoutDashboard() {
     renderWorkoutPeriodCard("今月", `${workoutMiniYear}年${workoutMiniMonth + 1}月`, monthSummary),
     renderWorkoutPeriodCard("今週", `${formatMonthDay(weekStart)}-${formatMonthDay(weekEnd)}`, weekSummary),
     renderWorkoutPeriodCard("今日", formatMonthDay(anchorDate), daySummary),
-    renderWorkoutBalanceCard(monthItems)
+    renderWorkoutCardioMonthCard(monthItems)
   ].join("");
 }
 
@@ -2693,9 +3123,10 @@ function renderCardioHistoryItem(item) {
   const config = getCardioMetricConfig(item.exercise);
   const distanceUnit = cardio.distanceUnit || config.distanceUnit;
   const speedUnit = cardio.speedUnit || config.speedUnit;
-  const durationText = formatSeconds(cardio.durationSec || 0);
+  const durationText = formatHms(cardio.durationSec || 0);
   const distanceText = formatCardioValue(cardio.distance, distanceUnit);
   const speedText = formatCardioValue(cardio.speed, speedUnit);
+  const caloriesText = formatCardioValue(cardio.calories, "kcal");
   const avgHrText = formatCardioValue(cardio.avgHeartRate, "bpm");
   const maxHrText = formatCardioValue(cardio.maxHeartRate, "bpm");
 
@@ -2707,7 +3138,7 @@ function renderCardioHistoryItem(item) {
           <div class="workout-history-simple-body">
             時間: ${durationText} / ${escapeHtml(config.distanceLabel)}: ${distanceText} / ${escapeHtml(config.speedLabel)}: ${speedText}
           </div>
-          <div class="workout-history-simple-body">心拍: 平均 ${avgHrText} / 最大 ${maxHrText}</div>
+          <div class="workout-history-simple-body">カロリー: ${caloriesText} / 心拍: 平均 ${avgHrText} / 最大 ${maxHrText}</div>
         </div>
       </summary>
       <div class="workout-history-detail-wrap">
@@ -2715,6 +3146,7 @@ function renderCardioHistoryItem(item) {
           <div class="workout-history-detail-title">有酸素内容</div>
           <div class="workout-history-detail-body">
             時間: ${durationText} / ${escapeHtml(config.distanceLabel)}: ${distanceText} / ${escapeHtml(config.speedLabel)}: ${speedText}<br>
+            カロリー: ${caloriesText}<br>
             心拍: 平均 ${avgHrText} / 最大 ${maxHrText}
           </div>
           ${cardio.memo ? `<div class="workout-history-detail-body">メモ: ${escapeHtml(cardio.memo)}</div>` : ""}
@@ -2942,6 +3374,7 @@ function getWorkoutEditCardioDataFromForm() {
       distanceUnit: config.distanceUnit,
       speed: "",
       speedUnit: config.speedUnit,
+      calories: "",
       avgHeartRate: "",
       maxHeartRate: "",
       memo: ""
@@ -2954,6 +3387,7 @@ function getWorkoutEditCardioDataFromForm() {
     distanceUnit: config.distanceUnit,
     speed: normalizeCardioNumber(form.querySelector("[data-edit-cardio-speed]")?.value, config.speedStep === "1" ? 0 : 1),
     speedUnit: config.speedUnit,
+    calories: normalizeCardioNumber(form.querySelector("[data-edit-cardio-calories]")?.value, 0),
     avgHeartRate: normalizeCardioNumber(form.querySelector("[data-edit-cardio-avg-hr]")?.value, 0),
     maxHeartRate: normalizeCardioNumber(form.querySelector("[data-edit-cardio-max-hr]")?.value, 0),
     memo: form.querySelector("[data-edit-cardio-memo]")?.value || ""
@@ -2966,6 +3400,7 @@ function renderWorkoutEditCardioForm(preset = null) {
   const durationSec = Math.max(0, Math.floor(Number(current.durationSec || 0)));
   const distanceValue = normalizeCardioNumber(current.distance, config.distanceStep === "1" ? 0 : 1);
   const speedValue = normalizeCardioNumber(current.speed, config.speedStep === "1" ? 0 : 1);
+  const caloriesValue = normalizeCardioNumber(current.calories, 0);
 
   workoutEditSetList.innerHTML = `
     <article class="edit-set-card edit-cardio-card" data-edit-cardio-form>
@@ -2976,7 +3411,7 @@ function renderWorkoutEditCardioForm(preset = null) {
       <div class="edit-cardio-grid">
         <label class="edit-field">
           <span>時間</span>
-          <input class="metric-number-input duration-direct-input" type="text" inputmode="numeric" data-edit-cardio-duration value="${escapeAttr(formatSeconds(durationSec))}" placeholder="00:00" />
+          <input class="metric-number-input duration-direct-input" type="text" inputmode="numeric" data-edit-cardio-duration value="${escapeAttr(formatHms(durationSec))}" placeholder="00:00:00" />
         </label>
         <label class="edit-field">
           <span>${escapeHtml(config.distanceLabel)}</span>
@@ -2990,6 +3425,13 @@ function renderWorkoutEditCardioForm(preset = null) {
           <div class="unit-input-wrap">
             <input type="number" inputmode="decimal" min="0" max="300" step="${escapeAttr(config.speedStep)}" data-edit-cardio-speed value="${escapeAttr(speedValue)}" placeholder="${escapeAttr(config.speedPlaceholder)}" data-numeric-assist data-numeric-label="${escapeAttr(config.speedLabel)}" data-numeric-step="${escapeAttr(config.speedStep)}" data-numeric-min="0" data-numeric-max="300" />
             <em>${escapeHtml(config.speedUnit)}</em>
+          </div>
+        </label>
+        <label class="edit-field">
+          <span>カロリー</span>
+          <div class="unit-input-wrap">
+            <input type="number" inputmode="numeric" min="0" max="5000" step="1" data-edit-cardio-calories value="${escapeAttr(caloriesValue)}" placeholder="250" data-numeric-assist data-numeric-label="カロリー" data-numeric-step="1" data-numeric-min="0" data-numeric-max="5000" />
+            <em>kcal</em>
           </div>
         </label>
         <label class="edit-field">
@@ -3015,7 +3457,7 @@ function renderWorkoutEditCardioForm(preset = null) {
   `;
 
   const form = workoutEditSetList.querySelector("[data-edit-cardio-form]");
-  bindDurationDirectInput(form.querySelector("[data-edit-cardio-duration]"));
+  bindDurationDirectInput(form.querySelector("[data-edit-cardio-duration]"), true);
 }
 
 function renderWorkoutEditSetList() {
@@ -3177,6 +3619,7 @@ function saveWorkoutEdit() {
     const hasCardioRecord = Number(cardioData.durationSec || 0) > 0 ||
       Number(cardioData.distance || 0) > 0 ||
       Number(cardioData.speed || 0) > 0 ||
+      Number(cardioData.calories || 0) > 0 ||
       Number(cardioData.avgHeartRate || 0) > 0 ||
       Number(cardioData.maxHeartRate || 0) > 0 ||
       !!String(cardioData.memo || "").trim();
@@ -3328,12 +3771,31 @@ function addExercise() {
   newExerciseInput.value = "";
 }
 
+function renderThemeSettings() {
+  if (!themePresetList) return;
+  const currentThemeId = getThemeSettings().themeId;
+  themePresetList.innerHTML = THEME_PRESETS.map(theme => `
+    <button class="theme-preset-btn ${theme.id === currentThemeId ? "active" : ""}" type="button" data-theme-id="${escapeAttr(theme.id)}">
+      <span class="theme-swatch-row">
+        ${theme.colors.map(color => `<i style="background:${escapeAttr(color)}"></i>`).join("")}
+      </span>
+      <strong>${escapeHtml(theme.name)}</strong>
+      <small>${escapeHtml(theme.note)}</small>
+    </button>
+  `).join("");
+  themePresetList.querySelectorAll("[data-theme-id]").forEach(button => {
+    button.addEventListener("click", () => saveThemeSettings(button.dataset.themeId));
+  });
+}
+
 function showSettingsSection(sectionName) {
   calendarSettingsSection.classList.toggle("hidden", sectionName !== "calendar");
   workoutSettingsSection.classList.toggle("hidden", sectionName !== "workout");
+  themeSettingsSection.classList.toggle("hidden", sectionName !== "theme");
   transferSettingsSection.classList.toggle("hidden", sectionName !== "transfer");
   showCalendarSettingsBtn.classList.toggle("active-tab", sectionName === "calendar");
   showWorkoutSettingsBtn.classList.toggle("active-tab", sectionName === "workout");
+  showThemeSettingsBtn.classList.toggle("active-tab", sectionName === "theme");
   showTransferSettingsBtn.classList.toggle("active-tab", sectionName === "transfer");
 }
 
@@ -3343,6 +3805,11 @@ function showCalendarSettings() {
 
 function showWorkoutSettings() {
   showSettingsSection("workout");
+}
+
+function showThemeSettings() {
+  renderThemeSettings();
+  showSettingsSection("theme");
 }
 
 function showTransferSettings() {
@@ -3628,6 +4095,7 @@ function bindEvents() {
   saveWorkoutDefaultsBtn.addEventListener("click", saveWorkoutDefaultSettings);
   showCalendarSettingsBtn.addEventListener("click", showCalendarSettings);
   showWorkoutSettingsBtn.addEventListener("click", showWorkoutSettings);
+  showThemeSettingsBtn.addEventListener("click", showThemeSettings);
   showTransferSettingsBtn.addEventListener("click", showTransferSettings);
   exportCsvBtn.addEventListener("click", exportSelectedCsv);
   exportZipBtn.addEventListener("click", () => {
@@ -3650,6 +4118,7 @@ function bindEvents() {
 }
 
 function init() {
+  applyThemeSettings();
   renderCategorySelect();
   renderCalendar();
   renderMiniCalendar();
