@@ -1435,6 +1435,35 @@ canvas {
   --workout-today: #29251b;
   --workout-selected: #3a2415;
   --workout-other: #151a24;
+  --app-header-bg: #ffffff;
+  --app-header-text: #172033;
+  --top-calendar-bg: #eaf3ff;
+  --top-calendar-text: #0958d9;
+  --top-workout-bg: #fff3e6;
+  --top-workout-text: #c2410c;
+  --top-settings-bg: #eaf3ff;
+  --top-settings-text: #0958d9;
+  --calendar-frame: #d9e2ec;
+  --calendar-fill: #ffffff;
+  --calendar-fill-alt: #eaf3ff;
+  --calendar-text: #172033;
+  --calendar-button-bg: #1677ff;
+  --calendar-button-text: #ffffff;
+  --calendar-input-bg: #ffffff;
+  --calendar-input-text: #111827;
+  --settings-frame: #d9e2ec;
+  --settings-fill: #ffffff;
+  --settings-text: #172033;
+  --settings-button-bg: #1677ff;
+  --settings-button-text: #ffffff;
+  --settings-input-bg: #ffffff;
+  --settings-input-text: #111827;
+  --workout-frame: #303746;
+  --workout-fill: #121722;
+  --workout-fill-alt: #1d2430;
+  --workout-button-bg: #f97316;
+  --workout-button-text: #111827;
+  --workout-input-text: #f8fafc;
 }
 
 body {
@@ -3055,6 +3084,137 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
   border-radius: 8px;
 }
 
+/* Theme-applied app surfaces */
+.app-header {
+  background: color-mix(in srgb, var(--app-header-bg) 92%, transparent);
+  color: var(--app-header-text);
+  border-bottom-color: var(--calendar-frame);
+}
+
+.header-actions {
+  background: var(--settings-fill);
+  border-color: var(--settings-frame);
+}
+
+body:not(.record-mode) #goCalendarBtnHeader.header-btn:hover,
+body:not(.record-mode) #goCalendarBtnHeader.header-btn:focus-visible {
+  background: var(--top-calendar-bg);
+  color: var(--top-calendar-text);
+}
+
+body:not(.record-mode) #goCalendarBtnHeader.header-btn.active-view {
+  border-color: var(--calendar-button-bg);
+  background: var(--top-calendar-bg);
+  color: var(--top-calendar-text);
+}
+
+body:not(.record-mode) #goWorkoutBtnHeader.header-btn:hover,
+body:not(.record-mode) #goWorkoutBtnHeader.header-btn:focus-visible {
+  background: var(--top-workout-bg);
+  color: var(--top-workout-text);
+}
+
+body:not(.record-mode) #goWorkoutBtnHeader.header-btn.active-view {
+  border-color: var(--workout-button-bg);
+  background: var(--top-workout-bg);
+  color: var(--top-workout-text);
+}
+
+body:not(.record-mode) #goSettingsBtnHeader.icon-btn:hover,
+body:not(.record-mode) #goSettingsBtnHeader.icon-btn:focus-visible {
+  background: var(--top-settings-bg);
+  color: var(--top-settings-text);
+}
+
+body:not(.record-mode) #goSettingsBtnHeader.icon-btn.active-view {
+  border-color: var(--settings-button-bg);
+  background: var(--top-settings-bg);
+  color: var(--top-settings-text);
+}
+
+#view-calendar .card,
+#view-input .card {
+  border-color: var(--calendar-frame);
+  background: var(--calendar-fill);
+  color: var(--calendar-text);
+}
+
+#view-calendar input,
+#view-calendar select,
+#view-calendar textarea,
+#view-input input,
+#view-input select,
+#view-input textarea {
+  border-color: var(--calendar-frame);
+  background: var(--calendar-input-bg);
+  color: var(--calendar-input-text);
+}
+
+#view-calendar .primary-btn,
+#view-input .primary-btn {
+  background: var(--calendar-button-bg);
+  color: var(--calendar-button-text);
+}
+
+#view-settings .card,
+#view-settings .settings-block,
+#view-settings .setting-item {
+  border-color: var(--settings-frame);
+  background: var(--settings-fill);
+  color: var(--settings-text);
+}
+
+#view-settings input,
+#view-settings select,
+#view-settings textarea {
+  border-color: var(--settings-frame);
+  background: var(--settings-input-bg);
+  color: var(--settings-input-text);
+}
+
+#view-settings .primary-btn,
+#view-settings .sub-btn,
+#view-settings .save-small-btn {
+  border-color: var(--settings-button-bg);
+  background: var(--settings-button-bg);
+  color: var(--settings-button-text);
+}
+
+#view-settings .active-tab {
+  background: var(--top-settings-bg);
+  color: var(--top-settings-text);
+  border-color: var(--settings-button-bg);
+}
+
+.calendar-planner-card .day-cell {
+  border-color: var(--calendar-frame);
+  background: var(--calendar-fill);
+  color: var(--calendar-text);
+}
+
+.calendar-planner-card .day-cell.other-month,
+.calendar-planner-card .nav-btn,
+.calendar-planner-card .mini-nav-btn {
+  background: var(--calendar-fill-alt);
+}
+
+.calendar-planner-card .day-cell.selected {
+  background: var(--calendar-fill-alt);
+  border-color: var(--calendar-button-bg);
+}
+
+.calendar-planner-card .day-cell.has-items .day-number {
+  background: var(--calendar-button-bg);
+  color: var(--calendar-button-text);
+}
+
+.schedule-summary-title,
+.schedule-detail-item .schedule-time-chip,
+.schedule-content,
+.timeline-empty-date {
+  color: var(--calendar-text);
+}
+
 /* Theme controls */
 .theme-preset-list {
   display: grid;
@@ -3088,6 +3248,24 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
 .theme-preset-btn small {
   color: var(--subtext);
   font-weight: 800;
+}
+
+.theme-scope-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 5px;
+}
+
+.theme-scope-row span {
+  border: 1px solid var(--settings-frame);
+  border-radius: 999px;
+  background: var(--settings-input-bg);
+  color: var(--settings-input-text);
+  padding: 5px 6px;
+  font-size: 11px;
+  font-weight: 900;
+  text-align: center;
+  white-space: nowrap;
 }
 
 .theme-swatch-row {
@@ -3125,15 +3303,15 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
 #view-workout-input .card,
 #view-workout-edit .card,
 #view-workout-stats .card {
-  border-color: var(--workout-line) !important;
-  background: var(--workout-card) !important;
+  border-color: var(--workout-frame) !important;
+  background: var(--workout-fill) !important;
   color: var(--workout-text) !important;
 }
 
 .workout-dashboard-card {
   background:
-    radial-gradient(circle at 85% 12%, color-mix(in srgb, var(--workout-primary) 26%, transparent), transparent 30%),
-    linear-gradient(135deg, var(--workout-card), var(--workout-card-alt)) !important;
+    radial-gradient(circle at 85% 12%, color-mix(in srgb, var(--workout-button-bg) 26%, transparent), transparent 30%),
+    linear-gradient(135deg, var(--workout-fill), var(--workout-fill-alt)) !important;
 }
 
 .workout-period-card {
@@ -3192,14 +3370,14 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
 
 #view-workout .day-cell.selected {
   background: var(--workout-selected) !important;
-  border-color: var(--workout-primary) !important;
+  border-color: var(--workout-button-bg) !important;
 }
 
 #view-workout .primary-btn,
 #view-workout-input .primary-btn,
 #view-workout-edit .primary-btn {
-  background: linear-gradient(180deg, var(--workout-accent), var(--workout-primary)) !important;
-  color: var(--workout-on-accent) !important;
+  background: linear-gradient(180deg, var(--workout-accent), var(--workout-button-bg)) !important;
+  color: var(--workout-button-text) !important;
 }
 
 #view-workout-input input:not([type="checkbox"]),
@@ -3216,28 +3394,30 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
 .roll-combined-input,
 .roll-direct-input,
 .roll-select {
-  border-color: var(--workout-line) !important;
+  border-color: var(--workout-frame) !important;
   background: var(--workout-field) !important;
-  color: var(--workout-text) !important;
+  color: var(--workout-input-text) !important;
 }
 
 /* iPhone date input centering */
-#view-workout-input .target-date-input,
-#view-workout-edit .target-date-input {
-  height: 44px;
-  min-height: 44px;
-  line-height: 44px !important;
+#view-workout-input input.target-date-input,
+#view-workout-edit input.target-date-input {
+  height: 44px !important;
+  min-height: 44px !important;
+  line-height: 1.2 !important;
   padding-top: 0 !important;
   padding-bottom: 0 !important;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  display: block;
 }
 
 #view-workout-input input[type="date"]::-webkit-date-and-time-value,
 #view-workout-edit input[type="date"]::-webkit-date-and-time-value {
-  min-height: 44px;
-  line-height: 44px;
+  height: 44px;
+  min-height: 0;
+  line-height: 1.2 !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   padding: 0;
   margin: 0;
   text-align: center;

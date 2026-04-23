@@ -613,6 +613,47 @@ let numericAssist = null;
 let activeNumericAssistInput = null;
 let numericAssistHideTimer = null;
 
+function isReplaceOnFirstNumericInput(input) {
+  return !!input?.matches?.("[data-numeric-assist], .roll-direct-input, .roll-combined-input");
+}
+
+function selectInputText(input) {
+  requestAnimationFrame(() => {
+    try {
+      input.select();
+    } catch {
+      try {
+        input.setSelectionRange(0, String(input.value || "").length);
+      } catch {}
+    }
+  });
+}
+
+function armReplaceOnFirstNumericInput(input) {
+  if (!isReplaceOnFirstNumericInput(input)) return;
+  input.dataset.replaceOnFirstInput = "true";
+  selectInputText(input);
+}
+
+function sanitizeFirstNumericInput(input, value) {
+  const allowsDecimal = input.inputMode === "decimal" || String(input.step || "").includes(".");
+  const raw = String(value || "");
+  if (allowsDecimal) {
+    const cleaned = raw.replace(/[^\d.]/g, "");
+    const dotIndex = cleaned.indexOf(".");
+    return dotIndex === -1
+      ? cleaned
+      : cleaned.slice(0, dotIndex + 1) + cleaned.slice(dotIndex + 1).replace(/\./g, "");
+  }
+  return raw.replace(/\D/g, "");
+}
+
+function finishFirstNumericReplacement(input, value) {
+  input.dataset.replaceOnFirstInput = "false";
+  input.value = value;
+  input.dispatchEvent(new Event("input", { bubbles: true }));
+}
+
 function readStorage(key, fallback) {
   try {
     const raw = localStorage.getItem(key);
@@ -736,9 +777,62 @@ function getCurrentThemePreset() {
   return THEME_PRESETS.find(theme => theme.id === themeId) || THEME_PRESETS[0];
 }
 
+function hexToRgb(hex) {
+  const normalized = String(hex || "").trim().replace("#", "");
+  if (!/^[0-9a-fA-F]{6}$/.test(normalized)) return null;
+  return {
+    r: parseInt(normalized.slice(0, 2), 16),
+    g: parseInt(normalized.slice(2, 4), 16),
+    b: parseInt(normalized.slice(4, 6), 16)
+  };
+}
+
+function getReadableTextColor(background, dark = "#111827", light = "#f8fafc") {
+  const rgb = hexToRgb(background);
+  if (!rgb) return dark;
+  const srgb = [rgb.r, rgb.g, rgb.b].map(value => {
+    const channel = value / 255;
+    return channel <= 0.03928 ? channel / 12.92 : Math.pow((channel + 0.055) / 1.055, 2.4);
+  });
+  const luminance = 0.2126 * srgb[0] + 0.7152 * srgb[1] + 0.0722 * srgb[2];
+  return luminance > 0.48 ? dark : light;
+}
+
 function applyThemeSettings() {
   const theme = getCurrentThemePreset();
-  Object.entries(theme.vars).forEach(([name, value]) => {
+  const vars = {
+    ...theme.vars,
+    "--app-header-bg": theme.vars["--card"],
+    "--app-header-text": theme.vars["--text"],
+    "--top-calendar-bg": theme.vars["--primary-light"],
+    "--top-calendar-text": theme.vars["--primary-dark"],
+    "--top-workout-bg": theme.vars["--workout-primary-light"],
+    "--top-workout-text": theme.vars["--workout-primary-dark"],
+    "--top-settings-bg": theme.vars["--primary-light"],
+    "--top-settings-text": theme.vars["--primary-dark"],
+    "--calendar-frame": theme.vars["--line"],
+    "--calendar-fill": theme.vars["--card"],
+    "--calendar-fill-alt": theme.vars["--primary-light"],
+    "--calendar-text": theme.vars["--text"],
+    "--calendar-button-bg": theme.vars["--primary"],
+    "--calendar-button-text": getReadableTextColor(theme.vars["--primary"]),
+    "--calendar-input-bg": theme.vars["--card"],
+    "--calendar-input-text": getReadableTextColor(theme.vars["--card"]),
+    "--settings-frame": theme.vars["--line"],
+    "--settings-fill": theme.vars["--card"],
+    "--settings-text": theme.vars["--text"],
+    "--settings-button-bg": theme.vars["--primary"],
+    "--settings-button-text": getReadableTextColor(theme.vars["--primary"]),
+    "--settings-input-bg": theme.vars["--card"],
+    "--settings-input-text": getReadableTextColor(theme.vars["--card"]),
+    "--workout-frame": theme.vars["--workout-line"],
+    "--workout-fill": theme.vars["--workout-card"],
+    "--workout-fill-alt": theme.vars["--workout-card-alt"],
+    "--workout-button-bg": theme.vars["--workout-primary"],
+    "--workout-button-text": getReadableTextColor(theme.vars["--workout-primary"]),
+    "--workout-input-text": getReadableTextColor(theme.vars["--workout-field"])
+  };
+  Object.entries(vars).forEach(([name, value]) => {
     document.documentElement.style.setProperty(name, value);
   });
   document.body.dataset.theme = theme.id;
@@ -873,6 +967,7 @@ function bindRollDirectInputs() {
     input.type = "number";
     input.inputMode = "numeric";
     column.insertBefore(input, select);
+    input.addEventListener("focus", () => armReplaceOnFirstNumericInput(input));
 
     const applyInputValue = () => {
       const options = [...select.options].map(option => Number(option.value));
@@ -900,6 +995,9 @@ function openRollPicker(title, bodyHtml, onApply) {
   rollPickerBody.classList.toggle("has-combined-input", !!rollPickerBody.querySelector(".roll-combined-input"));
   rollPickerBody.style.setProperty("--roll-column-count", String(Math.max(1, rollPickerBody.querySelectorAll(".roll-column").length)));
   bindRollDirectInputs();
+  rollPickerBody.querySelectorAll(".roll-combined-input").forEach(input => {
+    input.addEventListener("focus", () => armReplaceOnFirstNumericInput(input));
+  });
   activeRollPickerApply = onApply;
   rollPickerCancelBtn.onclick = closeRollPicker;
   rollPickerApplyBtn.onclick = () => {
@@ -1167,8 +1265,20 @@ function openSetCountRollPicker(value, onApply) {
   setSelectOptions(rollPickerBody.querySelector("#rollSetCountSelect"), rangeOptions(1, 30), Math.min(30, safeValue));
 }
 
-function setWorkoutSetCount(value) {
-  const nextValue = Math.max(1, Math.floor(Number(value || 1)));
+function setWorkoutSetCount(value, options = {}) {
+  const rawValue = String(value ?? "").trim();
+  if (options.allowEmpty && rawValue === "") {
+    setsInput.value = "";
+    const inlineSetsInput = $("setsInlineInput");
+    if (inlineSetsInput) {
+      if ("value" in inlineSetsInput) inlineSetsInput.value = "";
+      inlineSetsInput.textContent = "";
+    }
+    renderWorkoutState();
+    return;
+  }
+
+  const nextValue = Math.max(1, Math.floor(Number(rawValue || 1)));
   setsInput.value = String(nextValue);
   const inlineSetsInput = $("setsInlineInput");
   if (inlineSetsInput) {
@@ -1250,6 +1360,7 @@ function syncNumericAssist() {
 function showNumericAssist(input) {
   ensureNumericInputAssist();
   activeNumericAssistInput = input;
+  armReplaceOnFirstNumericInput(input);
   clearTimeout(numericAssistHideTimer);
   syncNumericAssist();
   numericAssist.classList.remove("hidden");
@@ -1269,10 +1380,30 @@ function initNumericInputAssist() {
     const input = event.target.closest?.("[data-numeric-assist]");
     if (input) showNumericAssist(input);
   });
+  document.addEventListener("beforeinput", event => {
+    const input = event.target.closest?.("input");
+    if (!input || input.dataset.replaceOnFirstInput !== "true") return;
+
+    if (event.inputType?.startsWith("delete")) {
+      event.preventDefault();
+      finishFirstNumericReplacement(input, "");
+      return;
+    }
+
+    if (event.inputType && !event.inputType.startsWith("insert")) return;
+    const nextValue = sanitizeFirstNumericInput(input, event.data || "");
+    if (!nextValue && event.data) return;
+
+    event.preventDefault();
+    finishFirstNumericReplacement(input, nextValue);
+  });
   document.addEventListener("focusout", event => {
+    const input = event.target.closest?.("[data-numeric-assist], .roll-direct-input, .roll-combined-input");
+    if (input) input.dataset.replaceOnFirstInput = "false";
     if (event.target.closest?.("[data-numeric-assist]")) hideNumericAssist();
   });
   document.addEventListener("input", event => {
+    if (isReplaceOnFirstNumericInput(event.target)) event.target.dataset.replaceOnFirstInput = "false";
     if (event.target === activeNumericAssistInput) syncNumericAssist();
   });
 }
@@ -1288,9 +1419,15 @@ function getCategoryById(id) {
 }
 
 function updateAppViewTitle(viewName) {
-  if (viewName === "workout" || viewName === "workoutInput" || viewName === "workoutEdit" || viewName === "workoutStats") {
+  const isWorkoutView = viewName === "workout" || viewName === "workoutInput" || viewName === "workoutEdit" || viewName === "workoutStats";
+  const isSettingsView = viewName === "settings";
+  goCalendarBtnHeader.classList.toggle("active-view", !isWorkoutView && !isSettingsView);
+  goWorkoutBtnHeader.classList.toggle("active-view", isWorkoutView);
+  goSettingsBtnHeader.classList.toggle("active-view", isSettingsView);
+
+  if (isWorkoutView) {
     appViewTitle.textContent = "筋トレ";
-  } else if (viewName === "settings") {
+  } else if (isSettingsView) {
     appViewTitle.textContent = "設定";
   } else {
     appViewTitle.textContent = "カレンダー";
@@ -2743,7 +2880,7 @@ function buildSetForms() {
 
   const inlineSetsInput = $("setsInlineInput");
   inlineSetsInput.addEventListener("input", () => {
-    setWorkoutSetCount(inlineSetsInput.value);
+    setWorkoutSetCount(inlineSetsInput.value, { allowEmpty: true });
   });
   inlineSetsInput.addEventListener("change", () => {
     setWorkoutSetCount(inlineSetsInput.value);
@@ -3062,20 +3199,28 @@ function summarizeCardioItems(items) {
     count: cardioItems.length,
     totalDuration: cardioItems.reduce((sum, item) => sum + Number(item.cardioData?.durationSec || 0), 0),
     totalCalories: cardioItems.reduce((sum, item) => sum + Number(item.cardioData?.calories || 0), 0),
+    totalDistance: cardioItems.reduce((sum, item) => {
+      const cardio = item.cardioData || {};
+      return cardio.distanceUnit === "段" ? sum : sum + Number(cardio.distance || 0);
+    }, 0),
+    totalSteps: cardioItems.reduce((sum, item) => {
+      const cardio = item.cardioData || {};
+      return cardio.distanceUnit === "段" ? sum + Number(cardio.distance || 0) : sum;
+    }, 0),
     averageHeartRate: heartRates.length
       ? Math.round(heartRates.reduce((sum, value) => sum + value, 0) / heartRates.length)
       : 0
   };
 }
 
-function renderWorkoutCardioMonthCard(items) {
+function renderWorkoutCardioMonthCard(items, monthText) {
   const summary = summarizeCardioItems(items);
 
   return `
     <article class="workout-period-card workout-balance-card cardio-month-card">
       <div class="workout-period-head">
-        <strong>有酸素運動について</strong>
-        <span>1か月</span>
+        <strong>有酸素運動</strong>
+        <span>${escapeHtml(monthText)}</span>
       </div>
       <div class="workout-period-metrics">
         <div>
@@ -3085,6 +3230,14 @@ function renderWorkoutCardioMonthCard(items) {
         <div>
           <span>カロリー</span>
           <strong>${summary.count ? `${formatWeightNumber(summary.totalCalories)}kcal` : "-"}</strong>
+        </div>
+        <div>
+          <span>距離</span>
+          <strong>${summary.totalDistance ? `${formatWeightNumber(summary.totalDistance)}km` : "-"}</strong>
+        </div>
+        <div>
+          <span>段数</span>
+          <strong>${summary.totalSteps ? `${formatWeightNumber(summary.totalSteps)}段` : "-"}</strong>
         </div>
         <div>
           <span>心拍数</span>
@@ -3110,7 +3263,7 @@ function renderWorkoutDashboard() {
     renderWorkoutPeriodCard("今月", `${workoutMiniYear}年${workoutMiniMonth + 1}月`, monthSummary),
     renderWorkoutPeriodCard("今週", `${formatMonthDay(weekStart)}-${formatMonthDay(weekEnd)}`, weekSummary),
     renderWorkoutPeriodCard("今日", formatMonthDay(anchorDate), daySummary),
-    renderWorkoutCardioMonthCard(monthItems)
+    renderWorkoutCardioMonthCard(monthItems, `${workoutMiniYear}年${workoutMiniMonth + 1}月`)
   ].join("");
 }
 
@@ -3181,6 +3334,7 @@ function renderWorkoutHistory() {
     const totalVolume = calcWorkoutTotalVolume(setLogs);
     const totalReps = setLogs.reduce((sum, log) => sum + Number(log.reps || 0), 0);
     const topRm = Math.max(...setLogs.map(log => Number(log.rm || 0)), 0);
+    const actualSetCount = setLogs.length || "-";
     const detailHtml = setLogs.map((log, index) => `
       <div class="workout-history-detail-row">
         <div class="workout-history-detail-title">${index + 1}セット目</div>
@@ -3198,7 +3352,7 @@ function renderWorkoutHistory() {
           <div class="workout-history-summary-main">
             <div class="workout-history-simple-title">${escapeHtml(item.bodyPart)} / ${escapeHtml(item.exercise)}</div>
             <div class="workout-history-simple-body">
-              総負荷量: ${formatWeightNumber(totalVolume)}kg / セット数: ${escapeHtml(item.targetSets || setLogs.length || "-")} / レップ数: ${totalReps} / 最高RM: ${topRm ? `${topRm.toFixed(1)}kg` : "-"}
+              総負荷量: ${formatWeightNumber(totalVolume)}kg / セット数: ${escapeHtml(actualSetCount)} / レップ数: ${totalReps} / 最高RM: ${topRm ? `${topRm.toFixed(1)}kg` : "-"}
             </div>
             <div class="workout-history-simple-body">実施時間: ${formatSeconds(totalWork)} / 休憩: ${formatSeconds(totalRest)}</div>
           </div>
@@ -3342,8 +3496,8 @@ function getWorkoutEditDraftFromForm() {
       weight,
       reps,
       assist: card.querySelector("[data-edit-assist]").checked,
-      workSec: Math.max(0, Math.floor(Number(card.querySelector("[data-edit-work-sec]").value || 0))),
-      restSec: Math.max(0, Math.floor(Number(card.querySelector("[data-edit-rest-sec]").value || 0))),
+      workSec: parseDurationInputValue(card.querySelector("[data-edit-work-duration]")?.value),
+      restSec: parseDurationInputValue(card.querySelector("[data-edit-rest-duration]")?.value),
       memo: card.querySelector("[data-edit-memo]").value,
       rm: calcEstimated1RM(weight, reps)
     };
@@ -3494,13 +3648,11 @@ function renderWorkoutEditSetList() {
           </label>
           <label class="edit-field">
             <span>実施</span>
-            <button class="roll-field-btn duration-roll-btn" type="button" data-edit-work-roll>${formatSeconds(log.workSec || 0)}</button>
-            <input type="hidden" data-edit-work-sec value="${escapeAttr(log.workSec || 0)}" />
+            <input class="metric-number-input duration-direct-input" type="text" inputmode="numeric" data-edit-work-duration value="${escapeAttr(formatSeconds(log.workSec || 0))}" placeholder="00:00" />
           </label>
           <label class="edit-field">
             <span>休憩</span>
-            <button class="roll-field-btn duration-roll-btn" type="button" data-edit-rest-roll>${formatSeconds(log.restSec || 0)}</button>
-            <input type="hidden" data-edit-rest-sec value="${escapeAttr(log.restSec || 0)}" />
+            <input class="metric-number-input duration-direct-input" type="text" inputmode="numeric" data-edit-rest-duration value="${escapeAttr(formatSeconds(log.restSec || 0))}" placeholder="00:00" />
           </label>
           <label class="edit-field edit-field-short edit-assist-compact">
             <span>補助</span>
@@ -3532,22 +3684,8 @@ function renderWorkoutEditSetList() {
       event.target.value = formatRepsRollValue(event.target.value);
       updateRm();
     });
-    card.querySelector("[data-edit-work-roll]").addEventListener("click", () => {
-      const input = card.querySelector("[data-edit-work-sec]");
-      const button = card.querySelector("[data-edit-work-roll]");
-      openDurationRollPicker("実施時間", input.value, value => {
-        input.value = String(value);
-        button.textContent = formatSeconds(value);
-      });
-    });
-    card.querySelector("[data-edit-rest-roll]").addEventListener("click", () => {
-      const input = card.querySelector("[data-edit-rest-sec]");
-      const button = card.querySelector("[data-edit-rest-roll]");
-      openDurationRollPicker("休憩時間", input.value, value => {
-        input.value = String(value);
-        button.textContent = formatSeconds(value);
-      });
-    });
+    bindDurationDirectInput(card.querySelector("[data-edit-work-duration]"));
+    bindDurationDirectInput(card.querySelector("[data-edit-rest-duration]"));
     card.querySelector("[data-remove-edit-set]").addEventListener("click", () => {
       const draft = getWorkoutEditDraftFromForm();
       if (draft.session.setLogs.length <= 1) {
@@ -3781,6 +3919,11 @@ function renderThemeSettings() {
       </span>
       <strong>${escapeHtml(theme.name)}</strong>
       <small>${escapeHtml(theme.note)}</small>
+      <span class="theme-scope-row">
+        <span>背景</span>
+        <span>カレンダー</span>
+        <span>筋トレ</span>
+      </span>
     </button>
   `).join("");
   themePresetList.querySelectorAll("[data-theme-id]").forEach(button => {
