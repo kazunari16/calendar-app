@@ -241,6 +241,9 @@ let workoutEditState = null;
 let scheduleEditState = null;
 let schedulePhotoDrafts = [];
 let activeRollPickerApply = null;
+let numericAssist = null;
+let activeNumericAssistInput = null;
+let numericAssistHideTimer = null;
 
 function readStorage(key, fallback) {
   try {
@@ -630,6 +633,34 @@ function openDurationRollPicker(title, totalSeconds, onApply) {
   setSelectOptions(rollPickerBody.querySelector("#rollSecondSelect"), rangeOptions(0, 59, true), seconds);
 }
 
+function parseDurationInputValue(value) {
+  const raw = String(value || "").trim();
+  if (!raw) return 0;
+  if (raw.includes(":")) {
+    const [m, s] = raw.split(":").map(part => Number(part.replace(/\D/g, "") || 0));
+    return Math.max(0, Math.floor(Number(m || 0) * 60 + Number(s || 0)));
+  }
+  const compact = raw.replace(/\D/g, "");
+  if (!compact) return 0;
+  if (compact.length <= 2) return Math.max(0, Number(compact) * 60);
+  const minutes = Number(compact.slice(0, -2) || 0);
+  const seconds = Number(compact.slice(-2) || 0);
+  return Math.max(0, Math.floor((minutes * 60) + Math.min(59, seconds)));
+}
+
+function bindDurationDirectInput(input) {
+  if (!input) return;
+  input.addEventListener("input", () => {
+    input.value = input.value.replace(/[^\d:]/g, "").slice(0, 5);
+  });
+  input.addEventListener("change", () => {
+    input.value = formatSeconds(parseDurationInputValue(input.value));
+  });
+  input.addEventListener("blur", () => {
+    input.value = formatSeconds(parseDurationInputValue(input.value));
+  });
+}
+
 function formatWeightRollValue(value) {
   const number = Math.max(0, Number(value || 0));
   return number.toFixed(1);
@@ -734,6 +765,116 @@ function setWorkoutSetCount(value) {
   renderWorkoutState();
 }
 
+function formatNumericAssistValue(value, step) {
+  const number = Number(value || 0);
+  const decimals = String(step).includes(".") ? String(step).split(".")[1].length : 0;
+  return decimals ? number.toFixed(decimals) : String(Math.round(number));
+}
+
+function ensureNumericInputAssist() {
+  if (numericAssist) return numericAssist;
+  numericAssist = document.createElement("div");
+  numericAssist.id = "numericInputAssist";
+  numericAssist.className = "numeric-input-assist hidden";
+  numericAssist.innerHTML = `
+    <div class="numeric-assist-head">
+      <span data-numeric-assist-label>数値</span>
+      <strong data-numeric-assist-value>0</strong>
+    </div>
+    <div class="numeric-assist-control">
+      <button class="numeric-step-btn" type="button" data-numeric-step-down aria-label="減らす">‹</button>
+      <input data-numeric-assist-range type="range" />
+      <button class="numeric-step-btn" type="button" data-numeric-step-up aria-label="増やす">›</button>
+    </div>
+  `;
+  document.body.appendChild(numericAssist);
+
+  numericAssist.querySelector("[data-numeric-step-down]").addEventListener("click", () => nudgeNumericAssist(-1));
+  numericAssist.querySelector("[data-numeric-step-up]").addEventListener("click", () => nudgeNumericAssist(1));
+  numericAssist.querySelector("[data-numeric-assist-range]").addEventListener("input", event => {
+    if (!activeNumericAssistInput) return;
+    const step = Number(activeNumericAssistInput.dataset.numericStep || activeNumericAssistInput.step || 1);
+    activeNumericAssistInput.value = formatNumericAssistValue(event.target.value, step);
+    activeNumericAssistInput.dispatchEvent(new Event("input", { bubbles: true }));
+    syncNumericAssist();
+  });
+
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener("resize", positionNumericAssist);
+    window.visualViewport.addEventListener("scroll", positionNumericAssist);
+  }
+  return numericAssist;
+}
+
+function getNumericAssistRange(input) {
+  const step = Number(input.dataset.numericStep || input.step || 1);
+  const min = Number(input.dataset.numericMin || input.min || 0);
+  const max = Number(input.dataset.numericMax || input.max || 300);
+  const value = Math.min(max, Math.max(min, Number(input.value || min)));
+  return { min, max, step, value };
+}
+
+function positionNumericAssist() {
+  if (!numericAssist || numericAssist.classList.contains("hidden")) return;
+  if (!window.visualViewport) {
+    numericAssist.style.bottom = "0px";
+    return;
+  }
+  const bottom = Math.max(0, window.innerHeight - window.visualViewport.height - window.visualViewport.offsetTop);
+  numericAssist.style.bottom = `${bottom}px`;
+}
+
+function syncNumericAssist() {
+  if (!numericAssist || !activeNumericAssistInput) return;
+  const { min, max, step, value } = getNumericAssistRange(activeNumericAssistInput);
+  const range = numericAssist.querySelector("[data-numeric-assist-range]");
+  range.min = String(min);
+  range.max = String(max);
+  range.step = String(step);
+  range.value = String(value);
+  numericAssist.querySelector("[data-numeric-assist-label]").textContent = activeNumericAssistInput.dataset.numericLabel || "数値";
+  numericAssist.querySelector("[data-numeric-assist-value]").textContent = formatNumericAssistValue(value, step);
+}
+
+function showNumericAssist(input) {
+  ensureNumericInputAssist();
+  activeNumericAssistInput = input;
+  clearTimeout(numericAssistHideTimer);
+  syncNumericAssist();
+  numericAssist.classList.remove("hidden");
+  positionNumericAssist();
+}
+
+function hideNumericAssist() {
+  numericAssistHideTimer = setTimeout(() => {
+    if (numericAssist) numericAssist.classList.add("hidden");
+    activeNumericAssistInput = null;
+  }, 120);
+}
+
+function nudgeNumericAssist(direction) {
+  if (!activeNumericAssistInput) return;
+  const { min, max, step, value } = getNumericAssistRange(activeNumericAssistInput);
+  const next = Math.min(max, Math.max(min, value + (step * direction)));
+  activeNumericAssistInput.value = formatNumericAssistValue(next, step);
+  activeNumericAssistInput.dispatchEvent(new Event("input", { bubbles: true }));
+  syncNumericAssist();
+}
+
+function initNumericInputAssist() {
+  ensureNumericInputAssist();
+  document.addEventListener("focusin", event => {
+    const input = event.target.closest?.("[data-numeric-assist]");
+    if (input) showNumericAssist(input);
+  });
+  document.addEventListener("focusout", event => {
+    if (event.target.closest?.("[data-numeric-assist]")) hideNumericAssist();
+  });
+  document.addEventListener("input", event => {
+    if (event.target === activeNumericAssistInput) syncNumericAssist();
+  });
+}
+
 function getCalendarCells(year, month) {
   const first = new Date(year, month, 1);
   const start = addDays(first, -first.getDay());
@@ -754,8 +895,17 @@ function updateAppViewTitle(viewName) {
   }
 }
 
+function isRecordView(viewName) {
+  return ["input", "workoutInput", "workoutEdit"].includes(viewName);
+}
+
+function scrollToPageTop() {
+  requestAnimationFrame(() => window.scrollTo({ top: 0, left: 0, behavior: "auto" }));
+}
+
 function switchView(viewName) {
   updateAppViewTitle(viewName);
+  document.body.classList.toggle("record-mode", isRecordView(viewName));
   Object.entries(views).forEach(([key, view]) => {
     view.classList.toggle("active", key === viewName);
   });
@@ -799,6 +949,8 @@ function switchView(viewName) {
     renderWorkoutDefaultSettingsInputs();
     showCalendarSettings();
   }
+
+  if (isRecordView(viewName)) scrollToPageTop();
 }
 
 function setSelectedDate(dateKey) {
@@ -1731,7 +1883,7 @@ function getCardioFormData(scope = cardioFormsWrap) {
 
   const config = getCardioMetricConfig(exerciseSelect.value);
   return {
-    durationSec: Math.max(0, Math.floor(Number(form.querySelector("[data-cardio-duration-sec]")?.value || 0))),
+    durationSec: parseDurationInputValue(form.querySelector("[data-cardio-duration]")?.value),
     distance: normalizeCardioNumber(form.querySelector("[data-cardio-distance]")?.value, config.distanceStep === "1" ? 0 : 1),
     distanceUnit: config.distanceUnit,
     speed: normalizeCardioNumber(form.querySelector("[data-cardio-speed]")?.value, config.speedStep === "1" ? 0 : 1),
@@ -1760,34 +1912,33 @@ function buildCardioForm(preset = null) {
       <div class="cardio-grid">
         <label class="cardio-field cardio-duration-field">
           <span>時間</span>
-          <button class="roll-field-btn duration-roll-btn" type="button" data-cardio-duration-roll>${formatSeconds(durationSec)}</button>
-          <input type="hidden" data-cardio-duration-sec value="${escapeAttr(durationSec)}" />
+          <input class="metric-number-input duration-direct-input" type="text" inputmode="numeric" data-cardio-duration value="${escapeAttr(formatSeconds(durationSec))}" placeholder="00:00" />
         </label>
         <label class="cardio-field">
           <span>${escapeHtml(config.distanceLabel)}</span>
           <div class="unit-input-wrap">
-            <input type="number" inputmode="decimal" min="0" step="${escapeAttr(config.distanceStep)}" data-cardio-distance value="${escapeAttr(distanceValue)}" placeholder="${escapeAttr(config.distancePlaceholder)}" />
+            <input type="number" inputmode="decimal" min="0" max="999" step="${escapeAttr(config.distanceStep)}" data-cardio-distance value="${escapeAttr(distanceValue)}" placeholder="${escapeAttr(config.distancePlaceholder)}" data-numeric-assist data-numeric-label="${escapeAttr(config.distanceLabel)}" data-numeric-step="${escapeAttr(config.distanceStep)}" data-numeric-min="0" data-numeric-max="999" />
             <em>${escapeHtml(config.distanceUnit)}</em>
           </div>
         </label>
         <label class="cardio-field">
           <span>${escapeHtml(config.speedLabel)}</span>
           <div class="unit-input-wrap">
-            <input type="number" inputmode="decimal" min="0" step="${escapeAttr(config.speedStep)}" data-cardio-speed value="${escapeAttr(speedValue)}" placeholder="${escapeAttr(config.speedPlaceholder)}" />
+            <input type="number" inputmode="decimal" min="0" max="300" step="${escapeAttr(config.speedStep)}" data-cardio-speed value="${escapeAttr(speedValue)}" placeholder="${escapeAttr(config.speedPlaceholder)}" data-numeric-assist data-numeric-label="${escapeAttr(config.speedLabel)}" data-numeric-step="${escapeAttr(config.speedStep)}" data-numeric-min="0" data-numeric-max="300" />
             <em>${escapeHtml(config.speedUnit)}</em>
           </div>
         </label>
         <label class="cardio-field">
           <span>平均心拍</span>
           <div class="unit-input-wrap">
-            <input type="number" inputmode="numeric" min="0" step="1" data-cardio-avg-hr value="${escapeAttr(normalizeCardioNumber(current.avgHeartRate, 0))}" placeholder="130" />
+            <input type="number" inputmode="numeric" min="0" max="240" step="1" data-cardio-avg-hr value="${escapeAttr(normalizeCardioNumber(current.avgHeartRate, 0))}" placeholder="130" data-numeric-assist data-numeric-label="平均心拍" data-numeric-step="1" data-numeric-min="0" data-numeric-max="240" />
             <em>bpm</em>
           </div>
         </label>
         <label class="cardio-field">
           <span>最大心拍</span>
           <div class="unit-input-wrap">
-            <input type="number" inputmode="numeric" min="0" step="1" data-cardio-max-hr value="${escapeAttr(normalizeCardioNumber(current.maxHeartRate, 0))}" placeholder="160" />
+            <input type="number" inputmode="numeric" min="0" max="240" step="1" data-cardio-max-hr value="${escapeAttr(normalizeCardioNumber(current.maxHeartRate, 0))}" placeholder="160" data-numeric-assist data-numeric-label="最大心拍" data-numeric-step="1" data-numeric-min="0" data-numeric-max="240" />
             <em>bpm</em>
           </div>
         </label>
@@ -1801,14 +1952,7 @@ function buildCardioForm(preset = null) {
   `;
 
   const form = cardioFormsWrap.querySelector("[data-cardio-form]");
-  form.querySelector("[data-cardio-duration-roll]").addEventListener("click", () => {
-    const input = form.querySelector("[data-cardio-duration-sec]");
-    const button = form.querySelector("[data-cardio-duration-roll]");
-    openDurationRollPicker("有酸素時間", input.value, value => {
-      input.value = String(value);
-      button.textContent = formatSeconds(value);
-    });
-  });
+  bindDurationDirectInput(form.querySelector("[data-cardio-duration]"));
   form.querySelector("[data-save-cardio]").addEventListener("click", () => saveWorkoutSession(false));
 }
 
@@ -1917,21 +2061,21 @@ function buildSetForms() {
         <div class="set-now-title">${setNo}セット目</div>
         <div class="set-config-inline">
           <span class="set-config-label">セット数</span>
-          <span class="set-config-edit"><button id="setsInlineInput" class="roll-field-btn metric-roll-btn set-count-roll-btn" type="button" data-sets-roll>${targetSets}</button></span>
+          <span class="set-config-edit">
+            <input id="setsInlineInput" class="metric-number-input set-count-number-input" type="number" inputmode="numeric" min="1" max="30" step="1" value="${escapeAttr(targetSets)}" data-numeric-assist data-numeric-label="セット数" data-numeric-step="1" data-numeric-min="1" data-numeric-max="30" />
+          </span>
           <span class="set-config-unit">セット</span>
         </div>
       </div>
       <div class="set-middle-row compact-middle-row">
         <label class="set-inline-field">
           <span>重量</span>
-          <button class="roll-field-btn metric-roll-btn" type="button" data-weight-roll>${formatWeightRollValue(draft.weight)}</button>
-          <input type="hidden" data-weight value="${escapeAttr(formatWeightRollValue(draft.weight))}" />
+          <input class="metric-number-input" type="number" inputmode="decimal" min="0" max="300" step="0.1" data-weight value="${escapeAttr(formatWeightRollValue(draft.weight))}" data-numeric-assist data-numeric-label="重量" data-numeric-step="0.1" data-numeric-min="0" data-numeric-max="300" />
           <em>kg</em>
         </label>
         <label class="set-inline-field">
           <span>回数</span>
-          <button class="roll-field-btn metric-roll-btn" type="button" data-reps-roll>${formatRepsRollValue(draft.reps)}</button>
-          <input type="hidden" data-reps value="${escapeAttr(formatRepsRollValue(draft.reps))}" />
+          <input class="metric-number-input" type="number" inputmode="numeric" min="0" max="300" step="1" data-reps value="${escapeAttr(formatRepsRollValue(draft.reps))}" data-numeric-assist data-numeric-label="回数" data-numeric-step="1" data-numeric-min="0" data-numeric-max="300" />
           <em>回</em>
         </label>
         <div class="set-rm-assist-row">
@@ -1961,31 +2105,22 @@ function buildSetForms() {
     input.addEventListener("input", updateDraftAndRm);
     input.addEventListener("change", updateDraftAndRm);
   });
-  box.querySelector("[data-weight-roll]").addEventListener("click", () => {
-    const input = box.querySelector("[data-weight]");
-    const button = box.querySelector("[data-weight-roll]");
-    openWeightRollPicker("重量", input.value, value => {
-      input.value = value;
-      button.textContent = value;
-      updateDraftAndRm();
-    });
+  box.querySelector("[data-weight]").addEventListener("change", event => {
+    event.target.value = formatWeightRollValue(event.target.value);
+    updateDraftAndRm();
   });
-  box.querySelector("[data-reps-roll]").addEventListener("click", () => {
-    const input = box.querySelector("[data-reps]");
-    const button = box.querySelector("[data-reps-roll]");
-    openRepsRollPicker("回数", input.value, value => {
-      input.value = value;
-      button.textContent = value;
-      updateDraftAndRm();
-    });
+  box.querySelector("[data-reps]").addEventListener("change", event => {
+    event.target.value = formatRepsRollValue(event.target.value);
+    updateDraftAndRm();
   });
 
   const inlineSetsInput = $("setsInlineInput");
-  inlineSetsInput.addEventListener("click", () => {
-    openSetCountRollPicker(getTargetSets(), value => {
-      setWorkoutSetCount(value);
-      buildSetForms();
-    });
+  inlineSetsInput.addEventListener("input", () => {
+    setWorkoutSetCount(inlineSetsInput.value);
+  });
+  inlineSetsInput.addEventListener("change", () => {
+    setWorkoutSetCount(inlineSetsInput.value);
+    buildSetForms();
   });
 }
 
@@ -2250,14 +2385,15 @@ function summarizeWorkoutItems(items) {
   return {
     totalVolume: items.reduce((sum, item) => sum + calcWorkoutTotalVolume(item.setLogs || []), 0),
     totalSets: setLogs.length,
+    totalReps: setLogs.reduce((sum, log) => sum + Number(log.reps || 0), 0),
     totalWork: setLogs.reduce((sum, log) => sum + Number(log.workSec || 0), 0) + cardioWork
   };
 }
 
 function getWorkoutVolumeText(item) {
   const validLogs = (item.setLogs || []).filter(log => Number(log.weight || 0) > 0 && Number(log.reps || 0) > 0);
-  if (!validLogs.length) return "総重量: -";
-  return `総重量: ${formatWeightNumber(calcWorkoutTotalVolume(validLogs))}kg`;
+  if (!validLogs.length) return "総負荷量: -";
+  return `総負荷量: ${formatWeightNumber(calcWorkoutTotalVolume(validLogs))}kg`;
 }
 
 function renderWorkoutPeriodCard(label, subText, summary) {
@@ -2269,12 +2405,16 @@ function renderWorkoutPeriodCard(label, subText, summary) {
       </div>
       <div class="workout-period-metrics">
         <div>
-          <span>総重量</span>
+          <span>総負荷量</span>
           <strong>${formatWeightNumber(summary.totalVolume)}kg</strong>
         </div>
         <div>
           <span>セット数</span>
           <strong>${summary.totalSets}</strong>
+        </div>
+        <div>
+          <span>レップ数</span>
+          <strong>${summary.totalReps}</strong>
         </div>
         <div>
           <span>実施時間</span>
@@ -2412,13 +2552,14 @@ function renderWorkoutHistory() {
     const totalWork = setLogs.reduce((sum, log) => sum + Number(log.workSec || 0), 0);
     const totalRest = setLogs.reduce((sum, log) => sum + Number(log.restSec || 0), 0);
     const totalVolume = calcWorkoutTotalVolume(setLogs);
+    const totalReps = setLogs.reduce((sum, log) => sum + Number(log.reps || 0), 0);
     const topRm = Math.max(...setLogs.map(log => Number(log.rm || 0)), 0);
     const detailHtml = setLogs.map((log, index) => `
       <div class="workout-history-detail-row">
         <div class="workout-history-detail-title">${index + 1}セット目</div>
         <div class="workout-history-detail-body">
           重量: ${escapeHtml(log.weight || "-")}kg / 回数: ${escapeHtml(log.reps || "-")}回 / 補助: ${log.assist ? "あり" : "なし"}<br>
-          実施: ${formatSeconds(log.workSec || 0)} / 休憩: ${formatSeconds(log.restSec || 0)} / RM: ${escapeHtml(log.rm || "-")}
+          実施時間: ${formatSeconds(log.workSec || 0)} / 休憩: ${formatSeconds(log.restSec || 0)} / RM: ${escapeHtml(log.rm || "-")}
         </div>
         <div class="workout-history-detail-body">メモ: ${escapeHtml(log.memo || "なし")}</div>
       </div>
@@ -2430,9 +2571,9 @@ function renderWorkoutHistory() {
           <div class="workout-history-summary-main">
             <div class="workout-history-simple-title">${escapeHtml(item.bodyPart)} / ${escapeHtml(item.exercise)}</div>
             <div class="workout-history-simple-body">
-              総重量: ${formatWeightNumber(totalVolume)}kg / セット数: ${escapeHtml(item.targetSets || setLogs.length || "-")} / 最高RM: ${topRm ? `${topRm.toFixed(1)}kg` : "-"}
+              総負荷量: ${formatWeightNumber(totalVolume)}kg / セット数: ${escapeHtml(item.targetSets || setLogs.length || "-")} / レップ数: ${totalReps} / 最高RM: ${topRm ? `${topRm.toFixed(1)}kg` : "-"}
             </div>
-            <div class="workout-history-simple-body">実施: ${formatSeconds(totalWork)} / 休憩: ${formatSeconds(totalRest)}</div>
+            <div class="workout-history-simple-body">実施時間: ${formatSeconds(totalWork)} / 休憩: ${formatSeconds(totalRest)}</div>
           </div>
         </summary>
         <div class="workout-history-detail-wrap">
@@ -2613,7 +2754,7 @@ function getWorkoutEditCardioDataFromForm() {
   }
 
   return {
-    durationSec: Math.max(0, Math.floor(Number(form.querySelector("[data-edit-cardio-duration-sec]")?.value || 0))),
+    durationSec: parseDurationInputValue(form.querySelector("[data-edit-cardio-duration]")?.value),
     distance: normalizeCardioNumber(form.querySelector("[data-edit-cardio-distance]")?.value, config.distanceStep === "1" ? 0 : 1),
     distanceUnit: config.distanceUnit,
     speed: normalizeCardioNumber(form.querySelector("[data-edit-cardio-speed]")?.value, config.speedStep === "1" ? 0 : 1),
@@ -2640,34 +2781,33 @@ function renderWorkoutEditCardioForm(preset = null) {
       <div class="edit-cardio-grid">
         <label class="edit-field">
           <span>時間</span>
-          <button class="roll-field-btn duration-roll-btn" type="button" data-edit-cardio-duration-roll>${formatSeconds(durationSec)}</button>
-          <input type="hidden" data-edit-cardio-duration-sec value="${escapeAttr(durationSec)}" />
+          <input class="metric-number-input duration-direct-input" type="text" inputmode="numeric" data-edit-cardio-duration value="${escapeAttr(formatSeconds(durationSec))}" placeholder="00:00" />
         </label>
         <label class="edit-field">
           <span>${escapeHtml(config.distanceLabel)}</span>
           <div class="unit-input-wrap">
-            <input type="number" inputmode="decimal" min="0" step="${escapeAttr(config.distanceStep)}" data-edit-cardio-distance value="${escapeAttr(distanceValue)}" placeholder="${escapeAttr(config.distancePlaceholder)}" />
+            <input type="number" inputmode="decimal" min="0" max="999" step="${escapeAttr(config.distanceStep)}" data-edit-cardio-distance value="${escapeAttr(distanceValue)}" placeholder="${escapeAttr(config.distancePlaceholder)}" data-numeric-assist data-numeric-label="${escapeAttr(config.distanceLabel)}" data-numeric-step="${escapeAttr(config.distanceStep)}" data-numeric-min="0" data-numeric-max="999" />
             <em>${escapeHtml(config.distanceUnit)}</em>
           </div>
         </label>
         <label class="edit-field">
           <span>${escapeHtml(config.speedLabel)}</span>
           <div class="unit-input-wrap">
-            <input type="number" inputmode="decimal" min="0" step="${escapeAttr(config.speedStep)}" data-edit-cardio-speed value="${escapeAttr(speedValue)}" placeholder="${escapeAttr(config.speedPlaceholder)}" />
+            <input type="number" inputmode="decimal" min="0" max="300" step="${escapeAttr(config.speedStep)}" data-edit-cardio-speed value="${escapeAttr(speedValue)}" placeholder="${escapeAttr(config.speedPlaceholder)}" data-numeric-assist data-numeric-label="${escapeAttr(config.speedLabel)}" data-numeric-step="${escapeAttr(config.speedStep)}" data-numeric-min="0" data-numeric-max="300" />
             <em>${escapeHtml(config.speedUnit)}</em>
           </div>
         </label>
         <label class="edit-field">
           <span>平均心拍</span>
           <div class="unit-input-wrap">
-            <input type="number" inputmode="numeric" min="0" step="1" data-edit-cardio-avg-hr value="${escapeAttr(normalizeCardioNumber(current.avgHeartRate, 0))}" placeholder="130" />
+            <input type="number" inputmode="numeric" min="0" max="240" step="1" data-edit-cardio-avg-hr value="${escapeAttr(normalizeCardioNumber(current.avgHeartRate, 0))}" placeholder="130" data-numeric-assist data-numeric-label="平均心拍" data-numeric-step="1" data-numeric-min="0" data-numeric-max="240" />
             <em>bpm</em>
           </div>
         </label>
         <label class="edit-field">
           <span>最大心拍</span>
           <div class="unit-input-wrap">
-            <input type="number" inputmode="numeric" min="0" step="1" data-edit-cardio-max-hr value="${escapeAttr(normalizeCardioNumber(current.maxHeartRate, 0))}" placeholder="160" />
+            <input type="number" inputmode="numeric" min="0" max="240" step="1" data-edit-cardio-max-hr value="${escapeAttr(normalizeCardioNumber(current.maxHeartRate, 0))}" placeholder="160" data-numeric-assist data-numeric-label="最大心拍" data-numeric-step="1" data-numeric-min="0" data-numeric-max="240" />
             <em>bpm</em>
           </div>
         </label>
@@ -2680,14 +2820,7 @@ function renderWorkoutEditCardioForm(preset = null) {
   `;
 
   const form = workoutEditSetList.querySelector("[data-edit-cardio-form]");
-  form.querySelector("[data-edit-cardio-duration-roll]").addEventListener("click", () => {
-    const input = form.querySelector("[data-edit-cardio-duration-sec]");
-    const button = form.querySelector("[data-edit-cardio-duration-roll]");
-    openDurationRollPicker("有酸素時間", input.value, value => {
-      input.value = String(value);
-      button.textContent = formatSeconds(value);
-    });
-  });
+  bindDurationDirectInput(form.querySelector("[data-edit-cardio-duration]"));
 }
 
 function renderWorkoutEditSetList() {
@@ -2716,13 +2849,11 @@ function renderWorkoutEditSetList() {
         <div class="edit-compact-grid">
           <label class="edit-field">
             <span>重量</span>
-            <button class="roll-field-btn metric-roll-btn" type="button" data-edit-weight-roll>${formatWeightRollValue(weight)}</button>
-            <input type="hidden" data-edit-weight value="${escapeAttr(formatWeightRollValue(weight))}" />
+            <input class="metric-number-input" type="number" inputmode="decimal" min="0" max="300" step="0.1" data-edit-weight value="${escapeAttr(formatWeightRollValue(weight))}" data-numeric-assist data-numeric-label="重量" data-numeric-step="0.1" data-numeric-min="0" data-numeric-max="300" />
           </label>
           <label class="edit-field">
             <span>回数</span>
-            <button class="roll-field-btn metric-roll-btn" type="button" data-edit-reps-roll>${formatRepsRollValue(reps)}</button>
-            <input type="hidden" data-edit-reps value="${escapeAttr(formatRepsRollValue(reps))}" />
+            <input class="metric-number-input" type="number" inputmode="numeric" min="0" max="300" step="1" data-edit-reps value="${escapeAttr(formatRepsRollValue(reps))}" data-numeric-assist data-numeric-label="回数" data-numeric-step="1" data-numeric-min="0" data-numeric-max="300" />
           </label>
           <label class="edit-field">
             <span>実施</span>
@@ -2754,23 +2885,15 @@ function renderWorkoutEditSetList() {
       const reps = card.querySelector("[data-edit-reps]").value;
       card.querySelector("[data-edit-rm]").textContent = `RM ${calcEstimated1RM(weight, reps) || "-"}`;
     };
-    card.querySelector("[data-edit-weight-roll]").addEventListener("click", () => {
-      const input = card.querySelector("[data-edit-weight]");
-      const button = card.querySelector("[data-edit-weight-roll]");
-      openWeightRollPicker("重量", input.value, value => {
-        input.value = value;
-        button.textContent = value;
-        updateRm();
-      });
+    card.querySelector("[data-edit-weight]").addEventListener("input", updateRm);
+    card.querySelector("[data-edit-reps]").addEventListener("input", updateRm);
+    card.querySelector("[data-edit-weight]").addEventListener("change", event => {
+      event.target.value = formatWeightRollValue(event.target.value);
+      updateRm();
     });
-    card.querySelector("[data-edit-reps-roll]").addEventListener("click", () => {
-      const input = card.querySelector("[data-edit-reps]");
-      const button = card.querySelector("[data-edit-reps-roll]");
-      openRepsRollPicker("回数", input.value, value => {
-        input.value = value;
-        button.textContent = value;
-        updateRm();
-      });
+    card.querySelector("[data-edit-reps]").addEventListener("change", event => {
+      event.target.value = formatRepsRollValue(event.target.value);
+      updateRm();
     });
     card.querySelector("[data-edit-work-roll]").addEventListener("click", () => {
       const input = card.querySelector("[data-edit-work-sec]");
@@ -3346,6 +3469,7 @@ function init() {
   renderStatsBodyPartSelect();
 
   setDefaultDateTimes();
+  initNumericInputAssist();
   bindEvents();
   switchView("calendar");
 }

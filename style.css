@@ -1441,6 +1441,31 @@ body {
   border-bottom: 1px solid rgba(217, 226, 236, 0.9);
 }
 
+.record-mode .app-header {
+  display: none;
+}
+
+.record-mode .view.active .top-row {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  margin: -14px -14px 14px;
+  padding: 14px;
+  border-bottom: 1px solid var(--line);
+  background: #ffffff;
+}
+
+.record-mode #view-workout-input.active .top-row,
+.record-mode #view-workout-edit.active .top-row {
+  border-bottom-color: #252a36;
+  background: #121722;
+}
+
+.record-mode .view.active .top-row .sub-btn {
+  min-height: 44px;
+  border-radius: 8px;
+}
+
 .app-header h1 {
   font-size: 25px;
   letter-spacing: 0;
@@ -2084,6 +2109,13 @@ body {
 
 .target-date-input {
   width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  inline-size: 100%;
+  min-inline-size: 0;
+  display: block;
+  -webkit-appearance: none;
+  appearance: none;
   min-height: 42px;
   border: 1px solid #374151;
   border-radius: 8px;
@@ -2094,6 +2126,36 @@ body {
   font-size: 15px;
   font-weight: 800;
   text-align: center;
+}
+
+#view-input input[type="datetime-local"],
+#view-workout-input input[type="date"],
+#view-workout-edit input[type="date"] {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  inline-size: 100%;
+  min-inline-size: 0;
+  display: block;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+input[type="date"]::-webkit-date-and-time-value,
+input[type="datetime-local"]::-webkit-date-and-time-value {
+  min-width: 0;
+  text-align: center;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator,
+input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+  margin: 0;
+}
+
+#view-input .card,
+#view-workout-input .workout-input-card,
+#view-workout-edit .workout-edit-card {
+  overflow: clip;
 }
 
 .workout-record-panel,
@@ -2565,6 +2627,31 @@ body {
   letter-spacing: 0;
 }
 
+.metric-number-input,
+#view-workout-input .metric-number-input,
+#view-workout-edit .metric-number-input {
+  width: 100%;
+  min-width: 0;
+  height: 42px;
+  min-height: 42px;
+  border: 1px solid #374151;
+  border-radius: 8px;
+  background: #0f141d;
+  color: #f8fafc;
+  font-variant-numeric: tabular-nums;
+  font-size: 15px;
+  font-weight: 900;
+  text-align: center;
+}
+
+.duration-direct-input {
+  letter-spacing: 0;
+}
+
+.set-count-number-input {
+  max-width: 82px;
+}
+
 #view-workout-edit .edit-field-short input {
   width: 24px;
   min-height: 24px;
@@ -2728,6 +2815,23 @@ body {
 }
 
 @media (max-width: 560px) {
+  .app-shell {
+    padding-left: 8px;
+    padding-right: 8px;
+  }
+
+  #view-input .time-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  #view-input .form-group,
+  #view-workout-input .workout-entry-row,
+  #view-workout-input .workout-entry-field,
+  #view-workout-edit .edit-field {
+    min-width: 0;
+    max-width: 100%;
+  }
+
   #view-workout-input .workout-entry-row-date {
     grid-template-columns: 1fr;
     gap: 8px;
@@ -2757,6 +2861,64 @@ body {
   .edit-cardio-grid {
     grid-template-columns: 1fr;
   }
+}
+
+.numeric-input-assist {
+  position: fixed;
+  left: 0;
+  right: 0;
+  z-index: 90;
+  padding: 8px 12px calc(8px + env(safe-area-inset-bottom));
+  border-top: 1px solid rgba(148, 163, 184, 0.35);
+  background: rgba(248, 250, 252, 0.96);
+  color: #111827;
+  box-shadow: 0 -10px 24px rgba(15, 23, 42, 0.14);
+}
+
+.numeric-assist-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  max-width: 820px;
+  margin: 0 auto 4px;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.numeric-assist-head span {
+  color: #1677ff;
+}
+
+.numeric-assist-head strong {
+  font-size: 18px;
+  font-variant-numeric: tabular-nums;
+}
+
+.numeric-assist-control {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) 44px;
+  gap: 10px;
+  align-items: center;
+  max-width: 820px;
+  margin: 0 auto;
+}
+
+.numeric-assist-control input[type="range"] {
+  width: 100%;
+  padding: 0;
+  accent-color: #7c3aed;
+}
+
+.numeric-step-btn {
+  width: 44px;
+  height: 38px;
+  border: none;
+  border-radius: 8px;
+  background: #e5e7eb;
+  color: #1677ff;
+  font-size: 28px;
+  line-height: 1;
 }
 
 .roll-picker-overlay {
