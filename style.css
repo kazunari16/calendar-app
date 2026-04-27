@@ -38,10 +38,14 @@ body {
 }
 
 .login-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
   min-height: 100dvh;
   display: grid;
   place-items: center;
   padding: 24px 16px;
+  overflow-y: auto;
   background:
     radial-gradient(circle at top, color-mix(in srgb, var(--primary-light) 75%, transparent), transparent 45%),
     linear-gradient(180deg, var(--page-bg-top, var(--bg)), var(--page-bg-bottom, var(--bg)));
@@ -109,11 +113,17 @@ body {
 }
 
 .auth-locked .app-shell {
-  display: none;
+  display: none !important;
+  visibility: hidden;
+  pointer-events: none;
 }
 
 body:not(.auth-locked) .login-screen {
-  display: none;
+  display: none !important;
+}
+
+.auth-locked .login-screen {
+  display: grid !important;
 }
 
 .app-shell {
