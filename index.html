@@ -11,12 +11,47 @@
   <meta name="theme-color" content="#2563eb" />
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
 </head>
-<body>
+<body class="auth-locked">
+  <main id="view-login" class="login-screen">
+    <section class="login-card">
+      <div class="login-badge">記録カレンダー</div>
+      <div class="login-mode-switch">
+        <button id="showLoginModeBtn" class="header-btn active-tab" type="button">ログイン</button>
+        <button id="showRegisterModeBtn" class="header-btn" type="button">新規登録</button>
+      </div>
+      <h1 id="loginTitle">ログイン</h1>
+      <p id="loginDescription" class="login-copy hidden"></p>
+      <p id="loginAdminNote" class="login-admin-note hidden"></p>
+      <div class="form-group">
+        <label for="loginNameInput">ユーザー名</label>
+        <input id="loginNameInput" type="text" autocomplete="username" placeholder="ユーザー名" />
+      </div>
+      <div id="registerNicknameWrap" class="form-group hidden">
+        <label for="registerNicknameInput">ニックネーム</label>
+        <input id="registerNicknameInput" type="text" autocomplete="nickname" placeholder="表示名" />
+      </div>
+      <div class="form-group">
+        <label for="loginPasswordInput">パスワード</label>
+        <div class="password-input-wrap">
+          <input id="loginPasswordInput" type="password" autocomplete="current-password" placeholder="パスワード" />
+          <button id="toggleLoginPasswordBtn" class="sub-btn password-toggle-btn" type="button" aria-label="パスワードを表示">表示</button>
+        </div>
+      </div>
+      <div id="registerPasswordConfirmWrap" class="form-group hidden">
+        <label for="registerPasswordConfirmInput">パスワード確認</label>
+        <div class="password-input-wrap">
+          <input id="registerPasswordConfirmInput" type="password" autocomplete="new-password" placeholder="もう一度入力" />
+          <button id="toggleRegisterPasswordConfirmBtn" class="sub-btn password-toggle-btn" type="button" aria-label="確認用パスワードを表示">表示</button>
+        </div>
+      </div>
+      <button id="loginSubmitBtn" class="primary-btn" type="button">ログイン</button>
+    </section>
+  </main>
   <div class="app-shell">
     <header class="app-header">
-      <h1 id="appViewTitle">カレンダー</h1>
+      <h1 id="appViewTitle">予定</h1>
       <div class="header-actions">
-        <button id="goCalendarBtnHeader" class="header-btn" type="button">カレンダー</button>
+        <button id="goCalendarBtnHeader" class="header-btn" type="button">予定</button>
         <button id="goWorkoutBtnHeader" class="header-btn" type="button">筋トレ</button>
         <button id="goSettingsBtnHeader" class="icon-btn" type="button" aria-label="設定">⚙</button>
       </div>
@@ -86,6 +121,12 @@
           <input id="calendarPhotoInput" type="file" accept="image/*" multiple />
           <div id="calendarPhotoPreviewList" class="photo-preview-list"></div>
         </div>
+        <div class="form-group">
+          <label class="checkbox-row" for="calendarShareInput">
+            <input id="calendarShareInput" type="checkbox" />
+            <span>共有可</span>
+          </label>
+        </div>
         <button id="saveRecordBtn" class="primary-btn" type="button">保存する</button>
       </section>
     </main>
@@ -94,7 +135,6 @@
       <section class="card workout-dashboard-card">
         <div class="workout-dashboard-head">
           <div>
-            <div class="workout-eyebrow">SUMMARY</div>
             <h2>トレーニング状況</h2>
           </div>
           <button id="goWorkoutStatsBtn" class="sub-btn workout-stats-link" type="button">成果グラフ</button>
@@ -131,6 +171,13 @@
         <div id="workoutHistoryList" class="schedule-list">
           <p class="empty-text">まだ筋トレ記録はありません。</p>
         </div>
+      </section>
+
+      <section class="card workout-ranking-card">
+        <div class="list-header">
+          <h2>筋トレランキング TOP10</h2>
+        </div>
+        <div id="workoutRankingGrid" class="workout-ranking-grid"></div>
       </section>
 
     </main>
@@ -266,18 +313,38 @@
         </div>
         <div class="section-title">設定画面</div>
         <div class="settings-tabs">
-          <button id="showCalendarSettingsBtn" class="header-btn active-tab" type="button">カレンダー</button>
-          <button id="showWorkoutSettingsBtn" class="header-btn" type="button">筋トレ</button>
+          <button id="showPasswordSettingsBtn" class="header-btn" type="button">ユーザー</button>
           <button id="showThemeSettingsBtn" class="header-btn" type="button">テーマ</button>
+          <button id="showCalendarSettingsBtn" class="header-btn active-tab" type="button">予定</button>
+          <button id="showWorkoutSettingsBtn" class="header-btn" type="button">筋トレ</button>
           <button id="showTransferSettingsBtn" class="header-btn" type="button">入出力</button>
+        </div>
+        <div class="settings-actions">
+          <button id="logoutBtn" class="sub-btn danger-outline-btn" type="button">ログアウト</button>
+        </div>
+        <div id="adminViewUserWrap" class="form-group admin-view-user-wrap hidden">
+          <label for="adminViewUserSelect">表示ユーザー</label>
+          <select id="adminViewUserSelect"></select>
         </div>
       </section>
 
       <section id="themeSettingsSection" class="settings-section hidden">
         <section class="card">
           <div class="settings-block">
-            <h3>テーマ</h3>
-            <div id="themePresetList" class="theme-preset-list"></div>
+            <h3>サイトのテーマ</h3>
+            <div id="siteThemePresetList" class="theme-preset-list"></div>
+          </div>
+        </section>
+        <section class="card">
+          <div class="settings-block">
+            <h3>予定のテーマ</h3>
+            <div id="calendarThemePresetList" class="theme-preset-list"></div>
+          </div>
+        </section>
+        <section class="card">
+          <div class="settings-block">
+            <h3>筋トレのテーマ</h3>
+            <div id="workoutThemePresetList" class="theme-preset-list"></div>
           </div>
         </section>
       </section>
@@ -290,7 +357,7 @@
               <label class="form-group">
                 <span>対象</span>
                 <select id="dataTransferTypeSelect">
-                  <option value="calendar">カレンダー</option>
+                  <option value="calendar">予定</option>
                   <option value="workout">筋トレ</option>
                 </select>
               </label>
@@ -298,6 +365,57 @@
               <button id="exportZipBtn" class="sub-btn" type="button">ZIPエクスポート</button>
               <button id="importCsvBtn" class="sub-btn" type="button">インポート</button>
               <input id="importCsvInput" class="hidden" type="file" accept=".csv,text/csv" />
+            </div>
+          </div>
+        </section>
+        <section class="card">
+          <div class="settings-block">
+            <h3>データ初期化</h3>
+            <p class="settings-hint">ログイン情報とテーマは残したまま、選んだデータだけ初期化します。</p>
+            <div class="transfer-grid reset-grid">
+              <button id="resetCalendarDataBtn" class="sub-btn danger-outline-btn" type="button">予定だけ初期化</button>
+              <button id="resetWorkoutDataBtn" class="sub-btn danger-outline-btn" type="button">筋トレだけ初期化</button>
+              <button id="resetAllDataBtn" class="sub-btn danger-outline-btn" type="button">全部初期化</button>
+            </div>
+          </div>
+        </section>
+      </section>
+
+      <section id="passwordSettingsSection" class="settings-section hidden">
+        <section class="card">
+          <div id="passwordSettingsWrap" class="settings-password-block">
+            <h3>ユーザー設定</h3>
+            <div class="form-group">
+              <label for="userNicknameInput">ニックネーム</label>
+              <div class="password-input-wrap">
+                <input id="userNicknameInput" type="text" autocomplete="nickname" placeholder="表示名" />
+                <button id="saveUserNicknameBtn" class="sub-btn password-toggle-btn" type="button">保存</button>
+              </div>
+            </div>
+            <div id="changePasswordFieldsWrap">
+              <h3>パスワード変更</h3>
+              <div class="form-group">
+                <label for="currentPasswordInput">現在のパスワード</label>
+                <div class="password-input-wrap">
+                  <input id="currentPasswordInput" type="password" autocomplete="current-password" placeholder="現在のパスワード" />
+                  <button id="toggleCurrentPasswordBtn" class="sub-btn password-toggle-btn" type="button" aria-label="現在のパスワードを表示">表示</button>
+                </div>
+              </div>
+              <div class="form-group">
+                <label for="newPasswordInput">新しいパスワード</label>
+                <div class="password-input-wrap">
+                  <input id="newPasswordInput" type="password" autocomplete="new-password" placeholder="新しいパスワード" />
+                  <button id="toggleNewPasswordBtn" class="sub-btn password-toggle-btn" type="button" aria-label="新しいパスワードを表示">表示</button>
+                </div>
+              </div>
+              <div class="form-group">
+                <label for="confirmNewPasswordInput">新しいパスワード確認</label>
+                <div class="password-input-wrap">
+                  <input id="confirmNewPasswordInput" type="password" autocomplete="new-password" placeholder="もう一度入力" />
+                  <button id="toggleConfirmNewPasswordBtn" class="sub-btn password-toggle-btn" type="button" aria-label="確認用の新しいパスワードを表示">表示</button>
+                </div>
+              </div>
+              <button id="changePasswordBtn" class="sub-btn" type="button">変更する</button>
             </div>
           </div>
         </section>
@@ -316,7 +434,7 @@
 
         <section class="card">
           <div class="list-header">
-            <h2>カレンダー設定</h2>
+            <h2>予定設定</h2>
           </div>
           <div id="categorySettingsList" class="settings-list">
             <p class="empty-text">項目がありません。</p>
@@ -325,21 +443,6 @@
       </section>
 
       <section id="workoutSettingsSection" class="settings-section hidden">
-        <section class="card">
-          <div class="settings-block">
-            <h3>部位を追加</h3>
-            <div class="input-inline">
-              <input id="newBodyPartInput" type="text" placeholder="例: 前腕" />
-              <button id="addBodyPartBtn" class="sub-btn" type="button">追加</button>
-            </div>
-          </div>
-          <div class="hidden">
-            <select id="settingsBodyPartSelect"></select>
-            <input id="newExerciseInput" type="text" placeholder="例: ダンベルカール" />
-            <button id="addExerciseBtn" class="sub-btn" type="button">追加</button>
-          </div>
-        </section>
-
         <section class="card">
           <div class="settings-block">
             <h3>初期設定</h3>
@@ -354,6 +457,21 @@
               </div>
             </div>
             <button id="saveWorkoutDefaultsBtn" class="sub-btn" type="button">初期設定を保存</button>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="settings-block">
+            <h3>部位を追加</h3>
+            <div class="input-inline">
+              <input id="newBodyPartInput" type="text" placeholder="例: 前腕" />
+              <button id="addBodyPartBtn" class="sub-btn" type="button">追加</button>
+            </div>
+          </div>
+          <div class="hidden">
+            <select id="settingsBodyPartSelect"></select>
+            <input id="newExerciseInput" type="text" placeholder="例: ダンベルカール" />
+            <button id="addExerciseBtn" class="sub-btn" type="button">追加</button>
           </div>
         </section>
 

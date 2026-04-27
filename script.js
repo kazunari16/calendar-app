@@ -1,9 +1,17 @@
-const STORAGE_SCHEDULE_KEY = "memoryCalendarSchedules_v6";
+﻿const STORAGE_SCHEDULE_KEY = "memoryCalendarSchedules_v6";
+const STORAGE_SHARED_SCHEDULE_KEY = "memoryCalendarSharedSchedules_v1";
 const STORAGE_CATEGORY_KEY = "memoryCalendarCategories_v6";
 const STORAGE_WORKOUT_MASTER_KEY = "memoryCalendarWorkoutMasters_v3";
 const STORAGE_WORKOUT_SESSION_KEY = "memoryCalendarWorkoutSessions_v3";
 const STORAGE_WORKOUT_UI_SETTINGS_KEY = "memoryCalendarWorkoutUiSettings_v1";
 const STORAGE_THEME_KEY = "memoryCalendarTheme_v1";
+const STORAGE_LOGIN_KEY = "memoryCalendarLogin_v1";
+const STORAGE_USERS_KEY = "memoryCalendarUsers_v1";
+const SESSION_LOGIN_KEY = "memoryCalendarLoggedIn_v1";
+const SESSION_CURRENT_USER_KEY = "memoryCalendarCurrentUser_v1";
+const SESSION_ADMIN_VIEW_USER_KEY = "memoryCalendarAdminViewUser_v1";
+const ADMIN_USERNAME = "admini";
+const ADMIN_PASSWORD = "kazunari_satoyama16840227";
 
 const DEFAULT_TEMPLATE = "【大項目】\n- \n\n【小項目】\n- \n\n【内容】\n- ";
 
@@ -469,6 +477,22 @@ const views = {
   settings: $("view-settings")
 };
 
+const loginView = $("view-login");
+const showLoginModeBtn = $("showLoginModeBtn");
+const showRegisterModeBtn = $("showRegisterModeBtn");
+const loginTitle = $("loginTitle");
+const loginDescription = $("loginDescription");
+const loginAdminNote = $("loginAdminNote");
+const loginNameInput = $("loginNameInput");
+const registerNicknameWrap = $("registerNicknameWrap");
+const registerNicknameInput = $("registerNicknameInput");
+const loginPasswordInput = $("loginPasswordInput");
+const toggleLoginPasswordBtn = $("toggleLoginPasswordBtn");
+const registerPasswordConfirmWrap = $("registerPasswordConfirmWrap");
+const registerPasswordConfirmInput = $("registerPasswordConfirmInput");
+const toggleRegisterPasswordConfirmBtn = $("toggleRegisterPasswordConfirmBtn");
+const loginSubmitBtn = $("loginSubmitBtn");
+
 const appViewTitle = $("appViewTitle");
 const goCalendarBtnHeader = $("goCalendarBtnHeader");
 const goWorkoutBtnHeader = $("goWorkoutBtnHeader");
@@ -498,6 +522,7 @@ const titleInput = $("title");
 const contentInput = $("content");
 const calendarPhotoInput = $("calendarPhotoInput");
 const calendarPhotoPreviewList = $("calendarPhotoPreviewList");
+const calendarShareInput = $("calendarShareInput");
 const saveRecordBtn = $("saveRecordBtn");
 
 const backToCalendarFromWorkoutBtn = $("backToCalendarFromWorkoutBtn");
@@ -512,6 +537,7 @@ const workoutTodayBtn = $("workoutTodayBtn");
 const workoutDashboard = $("workoutDashboard");
 const workoutHistoryList = $("workoutHistoryList");
 const workoutItemCount = $("workoutItemCount");
+const workoutRankingGrid = $("workoutRankingGrid");
 
 const backToWorkoutFromInputBtn = $("backToWorkoutFromInputBtn");
 const workoutInputTargetDateLabel = $("workoutInputTargetDateLabel");
@@ -564,16 +590,48 @@ const showCalendarSettingsBtn = $("showCalendarSettingsBtn");
 const showWorkoutSettingsBtn = $("showWorkoutSettingsBtn");
 const showThemeSettingsBtn = $("showThemeSettingsBtn");
 const showTransferSettingsBtn = $("showTransferSettingsBtn");
+const showPasswordSettingsBtn = $("showPasswordSettingsBtn");
+const logoutBtn = $("logoutBtn");
+const adminViewUserWrap = $("adminViewUserWrap");
+const adminViewUserSelect = $("adminViewUserSelect");
+const passwordSettingsWrap = $("passwordSettingsWrap");
+const changePasswordFieldsWrap = $("changePasswordFieldsWrap");
+const currentPasswordInput = $("currentPasswordInput");
+const newPasswordInput = $("newPasswordInput");
+const confirmNewPasswordInput = $("confirmNewPasswordInput");
+const userNicknameInput = $("userNicknameInput");
+const saveUserNicknameBtn = $("saveUserNicknameBtn");
+const calendarSettingsSectionHeading = document.querySelector("#calendarSettingsSection .list-header h2");
+const themeSettingsHeadings = document.querySelectorAll("#themeSettingsSection .settings-block h3");
+const calendarThemeHeading = themeSettingsHeadings[1] || null;
+
+if (goCalendarBtnHeader) goCalendarBtnHeader.textContent = "予定";
+if (showPasswordSettingsBtn) showPasswordSettingsBtn.textContent = "ユーザー";
+if (goCalendarBtnHeader) goCalendarBtnHeader.textContent = "予定";
+if (showCalendarSettingsBtn) showCalendarSettingsBtn.textContent = "予定";
+if (showPasswordSettingsBtn) showPasswordSettingsBtn.textContent = "ユーザー";
+if (calendarSettingsSectionHeading) calendarSettingsSectionHeading.textContent = "予定設定";
+if (calendarThemeHeading) calendarThemeHeading.textContent = "予定のテーマ";
+const toggleCurrentPasswordBtn = $("toggleCurrentPasswordBtn");
+const toggleNewPasswordBtn = $("toggleNewPasswordBtn");
+const toggleConfirmNewPasswordBtn = $("toggleConfirmNewPasswordBtn");
+const changePasswordBtn = $("changePasswordBtn");
 const calendarSettingsSection = $("calendarSettingsSection");
 const workoutSettingsSection = $("workoutSettingsSection");
 const themeSettingsSection = $("themeSettingsSection");
 const transferSettingsSection = $("transferSettingsSection");
-const themePresetList = $("themePresetList");
+const passwordSettingsSection = $("passwordSettingsSection");
+const siteThemePresetList = $("siteThemePresetList");
+const calendarThemePresetList = $("calendarThemePresetList");
+const workoutThemePresetList = $("workoutThemePresetList");
 const dataTransferTypeSelect = $("dataTransferTypeSelect");
 const exportCsvBtn = $("exportCsvBtn");
 const exportZipBtn = $("exportZipBtn");
 const importCsvBtn = $("importCsvBtn");
 const importCsvInput = $("importCsvInput");
+const resetCalendarDataBtn = $("resetCalendarDataBtn");
+const resetWorkoutDataBtn = $("resetWorkoutDataBtn");
+const resetAllDataBtn = $("resetAllDataBtn");
 const newCategoryInput = $("newCategoryInput");
 const addCategoryBtn = $("addCategoryBtn");
 const categorySettingsList = $("categorySettingsList");
@@ -607,14 +665,16 @@ let workoutState = {
 let workoutDraftInputs = {};
 let workoutEditState = null;
 let scheduleEditState = null;
+let authMode = "login";
 let schedulePhotoDrafts = [];
+let schedulePhotoLoadPromise = Promise.resolve();
 let activeRollPickerApply = null;
 let numericAssist = null;
 let activeNumericAssistInput = null;
 let numericAssistHideTimer = null;
 
 function isReplaceOnFirstNumericInput(input) {
-  return !!input?.matches?.("[data-numeric-assist], .roll-direct-input, .roll-combined-input");
+  return !!input?.matches?.("[data-numeric-assist], .roll-direct-input, .roll-combined-input, .replace-on-first-input");
 }
 
 function selectInputText(input) {
@@ -667,18 +727,426 @@ function writeStorage(key, value) {
   localStorage.setItem(key, JSON.stringify(value));
 }
 
+function normalizeUsername(username) {
+  return String(username || "").trim();
+}
+
+function normalizeNickname(nickname, fallbackUsername = "") {
+  const normalized = String(nickname || "").trim();
+  return normalized || normalizeUsername(fallbackUsername) || "";
+}
+
+function getLegacyLoginSettings() {
+  const parsed = readStorage(STORAGE_LOGIN_KEY, null);
+  if (!parsed?.username || !parsed?.password) return null;
+  return {
+    username: normalizeUsername(parsed.username),
+    password: String(parsed.password || "")
+  };
+}
+
+function createStoredUser(username, password, createdAt = Date.now(), nickname = "") {
+  const normalizedUsername = normalizeUsername(username);
+  return {
+    username: normalizedUsername,
+    password: String(password || ""),
+    createdAt: Number(createdAt || Date.now()),
+    nickname: normalizeNickname(nickname, normalizedUsername)
+  };
+}
+
+function getUserAccounts() {
+  const parsed = readStorage(STORAGE_USERS_KEY, null);
+  const accounts = parsed && typeof parsed === "object" && !Array.isArray(parsed) ? { ...parsed } : {};
+  let changed = !parsed;
+
+  const legacy = getLegacyLoginSettings();
+  if (legacy?.username && legacy.password && !accounts[legacy.username]) {
+    accounts[legacy.username] = createStoredUser(legacy.username, legacy.password, Date.now(), legacy.username);
+    changed = true;
+  }
+
+  Object.keys(accounts).forEach(key => {
+    const current = accounts[key];
+    const username = normalizeUsername(current?.username || key);
+    if (!username || !current || typeof current !== "object") {
+      delete accounts[key];
+      changed = true;
+      return;
+    }
+    const normalized = createStoredUser(username, current.password, current.createdAt, current.nickname || username);
+    if (key !== username) {
+      delete accounts[key];
+      changed = true;
+    }
+    accounts[username] = normalized;
+  });
+
+  const admin = accounts[ADMIN_USERNAME];
+  if (!admin || admin.password !== ADMIN_PASSWORD) {
+    accounts[ADMIN_USERNAME] = createStoredUser(ADMIN_USERNAME, ADMIN_PASSWORD, admin?.createdAt, admin?.nickname || ADMIN_USERNAME);
+    changed = true;
+  }
+
+  if (changed) writeStorage(STORAGE_USERS_KEY, accounts);
+  return accounts;
+}
+
+function saveUserAccounts(accounts) {
+  writeStorage(STORAGE_USERS_KEY, accounts);
+}
+
+function getUserNickname(username) {
+  const resolved = normalizeUsername(username);
+  const account = getUserAccounts()[resolved];
+  return normalizeNickname(account?.nickname, resolved);
+}
+
+function getUserDisplayName(username) {
+  const resolved = normalizeUsername(username);
+  const nickname = getUserNickname(resolved);
+  return nickname && nickname !== resolved ? `${nickname} (${resolved})` : (nickname || resolved);
+}
+
+function initializeUserDataStorage(username) {
+  const resolved = normalizeUsername(username);
+  if (!resolved || isAdminUser(resolved)) return;
+
+  const calendarKey = getScopedDataKey(STORAGE_CATEGORY_KEY, resolved);
+  if (!Array.isArray(readStorage(calendarKey, null))) {
+    writeStorage(calendarKey, []);
+  }
+
+  const scheduleKey = getScopedDataKey(STORAGE_SCHEDULE_KEY, resolved);
+  if (!readStorage(scheduleKey, null) || Array.isArray(readStorage(scheduleKey, null))) {
+    writeStorage(scheduleKey, {});
+  }
+
+  const workoutMasterKey = getScopedDataKey(STORAGE_WORKOUT_MASTER_KEY, resolved);
+  if (!readStorage(workoutMasterKey, null)) {
+    writeStorage(workoutMasterKey, deepCopy(DEFAULT_WORKOUT_MASTERS));
+  }
+
+  const workoutSessionKey = getScopedDataKey(STORAGE_WORKOUT_SESSION_KEY, resolved);
+  if (!readStorage(workoutSessionKey, null) || Array.isArray(readStorage(workoutSessionKey, null))) {
+    writeStorage(workoutSessionKey, {});
+  }
+
+  const workoutUiKey = getScopedDataKey(STORAGE_WORKOUT_UI_SETTINGS_KEY, resolved);
+  if (!readStorage(workoutUiKey, null)) {
+    writeStorage(workoutUiKey, deepCopy(DEFAULT_WORKOUT_UI_SETTINGS));
+  }
+}
+
+function getCurrentUsername() {
+  return normalizeUsername(sessionStorage.getItem(SESSION_CURRENT_USER_KEY) || "");
+}
+
+function isAdminUser(username = getCurrentUsername()) {
+  return normalizeUsername(username) === ADMIN_USERNAME;
+}
+
+function getEffectiveUsername(username = getCurrentUsername()) {
+  const resolved = normalizeUsername(username);
+  if (!resolved) return "";
+  if (!isAdminUser(resolved)) return resolved;
+  const accounts = getUserAccounts();
+  const target = normalizeUsername(sessionStorage.getItem(SESSION_ADMIN_VIEW_USER_KEY) || ADMIN_USERNAME);
+  return accounts[target] ? target : ADMIN_USERNAME;
+}
+
+function getScopedDataKey(baseKey, username = getCurrentUsername()) {
+  const resolved = getEffectiveUsername(username);
+  if (!resolved || isAdminUser(resolved)) return baseKey;
+  return `${baseKey}__${resolved}`;
+}
+
+function getScopedDataKeyForUsername(baseKey, username = "") {
+  const resolved = normalizeUsername(username);
+  if (!resolved || isAdminUser(resolved)) return baseKey;
+  return `${baseKey}__${resolved}`;
+}
+
+function readUserDataStorage(baseKey, fallback) {
+  return readStorage(getScopedDataKey(baseKey), fallback);
+}
+
+function writeUserDataStorage(baseKey, value) {
+  writeStorage(getScopedDataKey(baseKey), value);
+}
+
+function readUserDataStorageForUsername(baseKey, username, fallback) {
+  return readStorage(getScopedDataKeyForUsername(baseKey, username), fallback);
+}
+
+function isAuthenticated() {
+  const username = getCurrentUsername();
+  if (!username || sessionStorage.getItem(SESSION_LOGIN_KEY) !== "1") return false;
+  const accounts = getUserAccounts();
+  return Boolean(accounts[username]);
+}
+
+function setAuthenticated(nextValue, username = getCurrentUsername()) {
+  if (nextValue) {
+    const resolved = normalizeUsername(username);
+    sessionStorage.setItem(SESSION_LOGIN_KEY, "1");
+    sessionStorage.setItem(SESSION_CURRENT_USER_KEY, resolved);
+    if (isAdminUser(resolved)) {
+      const target = normalizeUsername(sessionStorage.getItem(SESSION_ADMIN_VIEW_USER_KEY) || ADMIN_USERNAME);
+      sessionStorage.setItem(SESSION_ADMIN_VIEW_USER_KEY, target || ADMIN_USERNAME);
+    } else {
+      sessionStorage.removeItem(SESSION_ADMIN_VIEW_USER_KEY);
+    }
+  } else {
+    sessionStorage.removeItem(SESSION_LOGIN_KEY);
+    sessionStorage.removeItem(SESSION_CURRENT_USER_KEY);
+    sessionStorage.removeItem(SESSION_ADMIN_VIEW_USER_KEY);
+  }
+  updateLoginView();
+}
+
+function setAuthMode(mode) {
+  authMode = mode === "register" ? "register" : "login";
+  updateLoginView();
+}
+
+function renderAdminViewUserSelect() {
+  if (!adminViewUserWrap || !adminViewUserSelect) return;
+  const show = isAdminUser();
+  adminViewUserWrap.classList.toggle("hidden", !show);
+  if (!show) return;
+
+  const accounts = getUserAccounts();
+  const usernames = Object.keys(accounts).sort((a, b) => {
+    if (a === ADMIN_USERNAME) return -1;
+    if (b === ADMIN_USERNAME) return 1;
+    return a.localeCompare(b, "ja");
+  });
+  adminViewUserSelect.innerHTML = usernames.map(username => `
+    <option value="${escapeAttr(username)}">${escapeHtml(username === ADMIN_USERNAME ? `${getUserDisplayName(username)} (既存データ)` : getUserDisplayName(username))}</option>
+  `).join("");
+  const target = getEffectiveUsername();
+  adminViewUserSelect.value = usernames.includes(target) ? target : ADMIN_USERNAME;
+}
+
+function setPasswordFieldVisibility(input, button, visible) {
+  if (!input || !button) return;
+  const nextVisible = !!visible;
+  input.type = nextVisible ? "text" : "password";
+  button.textContent = nextVisible ? "非表示" : "表示";
+  button.setAttribute("aria-label", nextVisible ? "パスワードを隠す" : "パスワードを表示");
+  button.dataset.visible = nextVisible ? "1" : "0";
+}
+
+function togglePasswordFieldVisibility(input, button) {
+  if (!input || !button) return;
+  setPasswordFieldVisibility(input, button, button.dataset.visible !== "1");
+}
+
+function resetPasswordFieldVisibility() {
+  setPasswordFieldVisibility(loginPasswordInput, toggleLoginPasswordBtn, false);
+  setPasswordFieldVisibility(registerPasswordConfirmInput, toggleRegisterPasswordConfirmBtn, false);
+  setPasswordFieldVisibility(currentPasswordInput, toggleCurrentPasswordBtn, false);
+  setPasswordFieldVisibility(newPasswordInput, toggleNewPasswordBtn, false);
+  setPasswordFieldVisibility(confirmNewPasswordInput, toggleConfirmNewPasswordBtn, false);
+}
+
+function clearPasswordSettingsForm() {
+  [currentPasswordInput, newPasswordInput, confirmNewPasswordInput].filter(Boolean).forEach(input => {
+    input.value = "";
+  });
+  resetPasswordFieldVisibility();
+}
+
+function renderPasswordSettings() {
+  if (!passwordSettingsWrap) return;
+  const loggedIn = isAuthenticated();
+  const canChangePassword = loggedIn && !isAdminUser();
+  passwordSettingsWrap.classList.toggle("hidden", !loggedIn);
+  changePasswordFieldsWrap?.classList.toggle("hidden", !canChangePassword);
+  if (userNicknameInput && loggedIn) {
+    userNicknameInput.value = getUserNickname(getCurrentUsername());
+  }
+  if (!canChangePassword) clearPasswordSettingsForm();
+  showPasswordSettingsBtn?.classList.toggle("hidden", !isAuthenticated());
+}
+
+function saveCurrentUserNickname() {
+  const username = getCurrentUsername();
+  if (!username) return;
+  const nickname = normalizeNickname(userNicknameInput?.value, username);
+  const accounts = getUserAccounts();
+  const account = accounts[username];
+  if (!account) return;
+  accounts[username] = { ...account, nickname };
+  saveUserAccounts(accounts);
+  renderAdminViewUserSelect();
+  renderPasswordSettings();
+  renderWorkoutRankings();
+  alert("ニックネームを保存しました。");
+}
+
+function setAdminViewUser(username) {
+  if (!isAdminUser()) return;
+  const accounts = getUserAccounts();
+  const target = normalizeUsername(username);
+  const nextUser = accounts[target] ? target : ADMIN_USERNAME;
+  sessionStorage.setItem(SESSION_ADMIN_VIEW_USER_KEY, nextUser);
+  refreshUserScopedUi();
+  switchView("workout");
+}
+
+function isAdminCalendarLocked() {
+  return isAdminUser();
+}
+
+function refreshUserScopedUi() {
+  applyThemeSettings();
+  renderAdminViewUserSelect();
+  renderPasswordSettings();
+  goInputBtn?.classList.toggle("hidden", isAdminCalendarLocked());
+  renderCategorySelect();
+  renderCalendar();
+  renderMiniCalendar();
+  renderScheduleList();
+  applyWorkoutDefaultsToInputs();
+  workoutDateInput.value = selectedDate;
+  updateWorkoutInputTargetDateLabel();
+  renderWorkoutBodyPartSelect();
+  renderWorkoutMiniCalendar();
+  renderWorkoutHistory();
+  renderWorkoutDashboard();
+  renderWorkoutRankings();
+  updateWorkoutInputMode();
+  renderWorkoutLogs();
+  renderCategorySettingsList();
+  renderSettingsBodyPartSelect();
+  renderWorkoutSettingsList();
+  renderWorkoutDefaultSettingsInputs();
+  renderStatsBodyPartSelect();
+  renderThemeSettings();
+}
+
+function updateLoginView() {
+  const loggedIn = isAuthenticated();
+  const currentUsername = getCurrentUsername();
+  document.body.classList.toggle("auth-locked", !loggedIn);
+  if (loginView) loginView.classList.toggle("hidden", loggedIn);
+  if (!loginTitle || !loginDescription || !loginSubmitBtn) return;
+
+  const isRegisterMode = authMode === "register";
+  loginTitle.textContent = isRegisterMode ? "新規登録" : "ログイン";
+  loginDescription.textContent = isRegisterMode
+    ? "ユーザー名とパスワードを登録して、自分専用のカレンダーと筋トレ記録を使い始めます。"
+    : "登録済みのユーザー名とパスワードでログインしてください。";
+  loginSubmitBtn.textContent = isRegisterMode ? "登録して開始" : "ログイン";
+  registerPasswordConfirmWrap?.classList.toggle("hidden", !isRegisterMode);
+  loginAdminNote?.classList.toggle("hidden", isRegisterMode);
+  showLoginModeBtn?.classList.toggle("active-tab", !isRegisterMode);
+  showRegisterModeBtn?.classList.toggle("active-tab", isRegisterMode);
+
+  if (!loggedIn) {
+    if (!loginNameInput.value) {
+      loginNameInput.value = currentUsername || "";
+    }
+    loginPasswordInput.value = "";
+    if (registerPasswordConfirmInput) registerPasswordConfirmInput.value = "";
+    if (!isRegisterMode) selectInputText(loginPasswordInput);
+  }
+}
+
+function logoutUser() {
+  closeRollPicker();
+  setAuthenticated(false, "");
+  setAuthMode("login");
+  loginNameInput.value = "";
+  if (registerNicknameInput) registerNicknameInput.value = "";
+  loginPasswordInput.value = "";
+  if (registerPasswordConfirmInput) registerPasswordConfirmInput.value = "";
+  clearPasswordSettingsForm();
+  switchView("calendar");
+}
+
+function resetCalendarData() {
+  removeSharedSchedulesByOwner(getCurrentUsername());
+  saveCategories(getDefaultCategoriesForCurrentUser());
+  saveSchedules({});
+  scheduleEditState = null;
+  resetSchedulePhotos();
+  if (calendarShareInput) calendarShareInput.checked = false;
+  setDefaultDateTimes();
+  renderCategorySelect();
+  renderCategorySettingsList();
+  renderCalendar();
+  renderMiniCalendar();
+  renderScheduleList();
+  saveRecordBtn.textContent = "保存する";
+  switchView("calendar");
+}
+
+function resetWorkoutData() {
+  saveWorkoutMasters(deepCopy(DEFAULT_WORKOUT_MASTERS));
+  saveWorkoutSessions({});
+  saveWorkoutUiSettings(DEFAULT_WORKOUT_UI_SETTINGS);
+  workoutEditState = null;
+  applyWorkoutDefaultsToInputs();
+  resetWorkoutState();
+  renderSettingsBodyPartSelect();
+  renderWorkoutBodyPartSelect();
+  renderWorkoutMiniCalendar();
+  renderWorkoutHistory();
+  renderWorkoutDashboard();
+  renderWorkoutRankings();
+  renderWorkoutSettingsList();
+  renderWorkoutDefaultSettingsInputs();
+  renderStatsBodyPartSelect();
+  updateWorkoutInputMode();
+  renderWorkoutLogs();
+  switchView("workout");
+}
+
+function confirmAndResetData(target) {
+  const messages = {
+    calendar: "予定の記録と項目設定を初期化します。よろしいですか？",
+    workout: "筋トレの記録と設定を初期化します。よろしいですか？",
+    all: "予定と筋トレのデータをまとめて初期化します。よろしいですか？"
+  };
+  if (!confirm(messages[target] || messages.all)) return;
+  if (target === "calendar") {
+    resetCalendarData();
+    alert("予定データを初期化しました。");
+    return;
+  }
+  if (target === "workout") {
+    resetWorkoutData();
+    alert("筋トレデータを初期化しました。");
+    return;
+  }
+  resetCalendarData();
+  resetWorkoutData();
+  switchView("calendar");
+  alert("予定と筋トレのデータを初期化しました。");
+}
+
+function getDefaultCategoriesForCurrentUser() {
+  return isAdminUser(getEffectiveUsername()) ? deepCopy(DEFAULT_CATEGORIES) : [];
+}
+
 function getCategories() {
-  const parsed = readStorage(STORAGE_CATEGORY_KEY, null);
-  if (!Array.isArray(parsed) || parsed.length === 0) {
-    const defaults = deepCopy(DEFAULT_CATEGORIES);
-    writeStorage(STORAGE_CATEGORY_KEY, defaults);
+  const parsed = readUserDataStorage(STORAGE_CATEGORY_KEY, null);
+  if (!Array.isArray(parsed)) {
+    const defaults = getDefaultCategoriesForCurrentUser();
+    writeUserDataStorage(STORAGE_CATEGORY_KEY, defaults);
     return defaults;
   }
+  if (parsed.length === 0) return [];
 
   const normalized = parsed.map((item, index) => {
     const fallback = DEFAULT_CATEGORIES[index] || DEFAULT_CATEGORIES[0];
     const name = CATEGORY_NAME_REPAIRS[item?.name] || item?.name || fallback.name;
-    const template = item?.template && !item.template.includes("縲") ? item.template : DEFAULT_TEMPLATE;
+    const template = typeof item?.template === "string" && !item.template.includes("縲")
+      ? item.template
+      : fallback.template;
     return {
       id: item?.id || createId(),
       name,
@@ -691,16 +1159,109 @@ function getCategories() {
 }
 
 function saveCategories(data) {
-  writeStorage(STORAGE_CATEGORY_KEY, data);
+  writeUserDataStorage(STORAGE_CATEGORY_KEY, data);
 }
 
 function getSchedules() {
-  const parsed = readStorage(STORAGE_SCHEDULE_KEY, {});
+  const parsed = readUserDataStorage(STORAGE_SCHEDULE_KEY, {});
   return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : {};
 }
 
 function saveSchedules(data) {
-  writeStorage(STORAGE_SCHEDULE_KEY, data);
+  writeUserDataStorage(STORAGE_SCHEDULE_KEY, data);
+}
+
+function getSharedSchedules() {
+  const parsed = readStorage(STORAGE_SHARED_SCHEDULE_KEY, {});
+  return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : {};
+}
+
+function saveSharedSchedules(data) {
+  writeStorage(STORAGE_SHARED_SCHEDULE_KEY, data);
+}
+
+function getScheduleOwnerUsername(item, fallback = getCurrentUsername()) {
+  return normalizeUsername(item?.ownerUsername) || normalizeUsername(fallback);
+}
+
+function removeSharedSchedulesByOwner(username) {
+  const ownerUsername = normalizeUsername(username);
+  if (!ownerUsername) return;
+  const sharedSchedules = getSharedSchedules();
+  let changed = false;
+
+  Object.keys(sharedSchedules).forEach(dateKey => {
+    const filtered = (sharedSchedules[dateKey] || []).filter(item => {
+      return getScheduleOwnerUsername(item) !== ownerUsername;
+    });
+    if (filtered.length !== (sharedSchedules[dateKey] || []).length) changed = true;
+    if (filtered.length) {
+      sharedSchedules[dateKey] = filtered;
+    } else {
+      delete sharedSchedules[dateKey];
+    }
+  });
+
+  if (changed) saveSharedSchedules(sharedSchedules);
+}
+
+function syncSharedScheduleItem(dateKey, item) {
+  const sharedSchedules = getSharedSchedules();
+  const ownerUsername = getScheduleOwnerUsername(item);
+
+  Object.keys(sharedSchedules).forEach(key => {
+    const filtered = (sharedSchedules[key] || []).filter(sharedItem => {
+      return !(
+        sharedItem.id === item.id &&
+        getScheduleOwnerUsername(sharedItem) === ownerUsername
+      );
+    });
+    if (filtered.length) {
+      sharedSchedules[key] = filtered;
+    } else {
+      delete sharedSchedules[key];
+    }
+  });
+
+  if (item.isShared) {
+    if (!sharedSchedules[dateKey]) sharedSchedules[dateKey] = [];
+    sharedSchedules[dateKey].push(deepCopy({
+      ...item,
+      ownerUsername,
+      isShared: true
+    }));
+  }
+
+  saveSharedSchedules(sharedSchedules);
+}
+
+function getVisibleSchedules() {
+  const currentUsername = getCurrentUsername();
+  const ownSchedules = isAdminUser(currentUsername) ? {} : getSchedules();
+  const visibleSchedules = deepCopy(ownSchedules);
+  const sharedSchedules = getSharedSchedules();
+
+  Object.entries(sharedSchedules).forEach(([dateKey, items]) => {
+    (items || []).forEach(item => {
+      if (!item?.isShared) return;
+      if (!visibleSchedules[dateKey]) visibleSchedules[dateKey] = [];
+      const ownerUsername = getScheduleOwnerUsername(item);
+      const exists = visibleSchedules[dateKey].some(existing => (
+        existing.id === item.id &&
+        getScheduleOwnerUsername(existing) === ownerUsername
+      ));
+      if (exists) return;
+      visibleSchedules[dateKey].push(deepCopy(item));
+    });
+  });
+
+  return visibleSchedules;
+}
+
+function canManageScheduleItem(item) {
+  if (isAdminUser()) return false;
+  const ownerUsername = getScheduleOwnerUsername(item);
+  return !ownerUsername || ownerUsername === getCurrentUsername();
 }
 
 function normalizeWorkoutMasters(parsed) {
@@ -723,27 +1284,27 @@ function normalizeWorkoutMasters(parsed) {
 }
 
 function getWorkoutMasters() {
-  const parsed = readStorage(STORAGE_WORKOUT_MASTER_KEY, null);
+  const parsed = readUserDataStorage(STORAGE_WORKOUT_MASTER_KEY, null);
   const normalized = normalizeWorkoutMasters(parsed);
-  if (!parsed) writeStorage(STORAGE_WORKOUT_MASTER_KEY, normalized);
+  if (!parsed) writeUserDataStorage(STORAGE_WORKOUT_MASTER_KEY, normalized);
   return normalized;
 }
 
 function saveWorkoutMasters(data) {
-  writeStorage(STORAGE_WORKOUT_MASTER_KEY, normalizeWorkoutMasters(data));
+  writeUserDataStorage(STORAGE_WORKOUT_MASTER_KEY, normalizeWorkoutMasters(data));
 }
 
 function getWorkoutSessions() {
-  const parsed = readStorage(STORAGE_WORKOUT_SESSION_KEY, {});
+  const parsed = readUserDataStorage(STORAGE_WORKOUT_SESSION_KEY, {});
   return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : {};
 }
 
 function saveWorkoutSessions(data) {
-  writeStorage(STORAGE_WORKOUT_SESSION_KEY, data);
+  writeUserDataStorage(STORAGE_WORKOUT_SESSION_KEY, data);
 }
 
 function getWorkoutUiSettings() {
-  const parsed = readStorage(STORAGE_WORKOUT_UI_SETTINGS_KEY, DEFAULT_WORKOUT_UI_SETTINGS);
+  const parsed = readUserDataStorage(STORAGE_WORKOUT_UI_SETTINGS_KEY, DEFAULT_WORKOUT_UI_SETTINGS);
   const defaultSets = Math.max(1, Number(parsed?.defaultSets || DEFAULT_WORKOUT_UI_SETTINGS.defaultSets));
   const defaultRestSec = Math.max(0, Number(parsed?.defaultRestSec ?? DEFAULT_WORKOUT_UI_SETTINGS.defaultRestSec));
   return { defaultSets, defaultRestSec };
@@ -754,27 +1315,280 @@ function saveWorkoutUiSettings(data) {
     defaultSets: Math.max(1, Number(data.defaultSets || DEFAULT_WORKOUT_UI_SETTINGS.defaultSets)),
     defaultRestSec: Math.max(0, Number(data.defaultRestSec ?? DEFAULT_WORKOUT_UI_SETTINGS.defaultRestSec))
   };
-  writeStorage(STORAGE_WORKOUT_UI_SETTINGS_KEY, normalized);
+  writeUserDataStorage(STORAGE_WORKOUT_UI_SETTINGS_KEY, normalized);
+}
+
+function createThemeLightVariantPreset(theme, index) {
+  const vars = theme.vars;
+  const lightCard = mixHexColors(vars["--primary-light"], vars["--card"], 0.68);
+  const lightAlt = mixHexColors(vars["--primary-light"], vars["--card"], 0.5);
+  const lightSurface = mixHexColors(vars["--primary-light"], "#ffffff", 0.26);
+  const lightField = mixHexColors(vars["--primary-light"], "#ffffff", 0.5);
+  const lightLine = mixHexColors(vars["--primary"], vars["--line"], 0.28);
+  const accent = vars["--primary"];
+  const accentDark = vars["--primary-dark"];
+  const accentLight = mixHexColors(vars["--primary-light"], "#ffffff", 0.82);
+  return {
+    ...theme,
+    id: `${theme.id}-light-${index}`,
+    variant: "light",
+    name: `${theme.id} light ${index}`,
+    note: "",
+    colors: [
+      vars["--primary-light"],
+      accent,
+      lightCard
+    ],
+    vars: {
+      ...vars,
+      "--workout-card": lightCard,
+      "--workout-card-alt": lightAlt,
+      "--workout-surface": lightSurface,
+      "--workout-field": lightField,
+      "--workout-line": lightLine,
+      "--workout-text": getReadableTextColor(lightCard, "#0f172a", "#ffffff"),
+      "--workout-subtext": getReadableMutedTextColor(lightCard),
+      "--workout-primary": accent,
+      "--workout-primary-dark": accentDark,
+      "--workout-primary-light": accentLight,
+      "--workout-accent": accent,
+      "--workout-chip": accentLight,
+      "--workout-on-accent": getReadableTextColor(accent, "#111827", "#ffffff"),
+      "--workout-today": vars["--today"],
+      "--workout-selected": vars["--selected"],
+      "--workout-other": mixHexColors(vars["--primary-light"], "#ffffff", 0.34)
+    }
+  };
+}
+
+function createThemeDarkVariantPreset(theme, index) {
+  const vars = theme.vars;
+  const darkCard = vars["--workout-card"];
+  const darkAlt = vars["--workout-card-alt"];
+  const darkField = vars["--workout-field"];
+  const darkLine = vars["--workout-line"];
+  const accent = vars["--primary"];
+  const accentDark = vars["--primary-dark"];
+  const accentLight = mixHexColors(darkField, vars["--primary-light"], 0.38);
+  return {
+    ...theme,
+    id: `${theme.id}-dark-${index}`,
+    variant: "dark",
+    name: `${theme.id} dark ${index}`,
+    note: "",
+    colors: [
+      accent,
+      vars["--workout-accent"],
+      darkCard
+    ],
+    vars: {
+      ...vars,
+      "--page-bg-top": mixHexColors(darkCard, "#000000", 0.88),
+      "--page-bg-bottom": mixHexColors(darkAlt, darkCard, 0.54),
+      "--bg": mixHexColors(darkCard, darkAlt, 0.5),
+      "--card": darkCard,
+      "--text": "#ffffff",
+      "--subtext": "#d1d5db",
+      "--line": darkLine,
+      "--primary": accent,
+      "--primary-dark": accentDark,
+      "--primary-light": accentLight,
+      "--today": vars["--workout-today"],
+      "--selected": vars["--workout-selected"],
+      "--workout-card": darkCard,
+      "--workout-card-alt": darkAlt,
+      "--workout-surface": vars["--workout-surface"],
+      "--workout-field": darkField,
+      "--workout-line": darkLine,
+      "--workout-text": "#ffffff",
+      "--workout-subtext": "#e5e7eb",
+      "--workout-primary": accent,
+      "--workout-primary-dark": accentDark,
+      "--workout-primary-light": accentLight,
+      "--workout-accent": accent,
+      "--workout-chip": accentLight,
+      "--workout-on-accent": getReadableTextColor(accent, "#111827", "#ffffff"),
+      "--workout-today": vars["--workout-today"],
+      "--workout-selected": vars["--workout-selected"],
+      "--workout-other": vars["--workout-other"]
+    }
+  };
+}
+
+function createSoftThemePreset({ id, name, accent, pale, line, selected, today }) {
+  const todayTone = mixHexColors(accent, "#ffffff", 0.08);
+  const selectedTone = mixHexColors(accent, "#ffffff", 0.20);
+  return {
+    id,
+    name,
+    note: "",
+    colors: [accent, pale, "#ffffff"],
+    vars: {
+      "--page-bg-top": "#ffffff",
+      "--page-bg-bottom": pale,
+      "--bg": "#ffffff",
+      "--card": "#ffffff",
+      "--text": "#111827",
+      "--subtext": "#4b5563",
+      "--line": line,
+      "--primary": accent,
+      "--primary-dark": accent,
+      "--primary-light": pale,
+      "--today": todayTone,
+      "--selected": selectedTone,
+      "--workout-primary": accent,
+      "--workout-primary-dark": accent,
+      "--workout-primary-light": pale,
+      "--workout-accent": accent,
+      "--workout-chip": pale,
+      "--workout-on-accent": "#111827",
+      "--workout-card": "#ffffff",
+      "--workout-card-alt": pale,
+      "--workout-surface": pale,
+      "--workout-field": "#ffffff",
+      "--workout-line": line,
+      "--workout-text": "#111827",
+      "--workout-subtext": "#4b5563",
+      "--workout-today": todayTone,
+      "--workout-selected": selectedTone,
+      "--workout-other": pale
+    }
+  };
+}
+
+const SOFT_THEME_PRESETS = [
+  createSoftThemePreset({
+    id: "soft-black",
+    name: "黒",
+    accent: "#111827",
+    pale: "#f8fafc",
+    line: "#cbd5e1",
+    selected: "#dbe4f0",
+    today: "#f8fafc"
+  }),
+  createSoftThemePreset({
+    id: "soft-gray",
+    name: "灰色",
+    accent: "#94a3b8",
+    pale: "#f8fafc",
+    line: "#cbd5e1",
+    selected: "#d8e1eb",
+    today: "#eef2f7"
+  }),
+  createSoftThemePreset({
+    id: "soft-blue",
+    name: "薄い青",
+    accent: "#60a5fa",
+    pale: "#eff6ff",
+    line: "#bfdbfe",
+    selected: "#bfdbfe",
+    today: "#eff6ff"
+  }),
+  createSoftThemePreset({
+    id: "soft-cyan",
+    name: "薄い水色",
+    accent: "#22d3ee",
+    pale: "#ecfeff",
+    line: "#a5f3fc",
+    selected: "#a5f3fc",
+    today: "#ecfeff"
+  }),
+  createSoftThemePreset({
+    id: "soft-green",
+    name: "薄い緑",
+    accent: "#4ade80",
+    pale: "#f0fdf4",
+    line: "#bbf7d0",
+    selected: "#bbf7d0",
+    today: "#f0fdf4"
+  }),
+  createSoftThemePreset({
+    id: "soft-lime",
+    name: "薄い黄緑",
+    accent: "#a3e635",
+    pale: "#f7fee7",
+    line: "#d9f99d",
+    selected: "#d9f99d",
+    today: "#fefce8"
+  }),
+  createSoftThemePreset({
+    id: "soft-red",
+    name: "薄い赤",
+    accent: "#f87171",
+    pale: "#fef2f2",
+    line: "#fecaca",
+    selected: "#fecaca",
+    today: "#fff1f2"
+  }),
+  createSoftThemePreset({
+    id: "soft-pink",
+    name: "薄いピンク",
+    accent: "#f472b6",
+    pale: "#fdf2f8",
+    line: "#fbcfe8",
+    selected: "#fbcfe8",
+    today: "#fdf2f8"
+  }),
+  createSoftThemePreset({
+    id: "soft-yellow",
+    name: "薄い黄",
+    accent: "#facc15",
+    pale: "#fefce8",
+    line: "#fde68a",
+    selected: "#fde68a",
+    today: "#fffbeb"
+  }),
+  createSoftThemePreset({
+    id: "soft-orange",
+    name: "薄い橙",
+    accent: "#fb923c",
+    pale: "#fff7ed",
+    line: "#fdba74",
+    selected: "#fdba74",
+    today: "#fff7ed"
+  })
+];
+
+const SITE_THEME_PRESETS = SOFT_THEME_PRESETS;
+const CONTENT_THEME_PRESETS = SOFT_THEME_PRESETS;
+
+function normalizeThemeId(themeId, presets = CONTENT_THEME_PRESETS) {
+  return presets.some(theme => theme.id === themeId) ? themeId : presets[0].id;
 }
 
 function getThemeSettings() {
-  const parsed = readStorage(STORAGE_THEME_KEY, {});
-  const themeId = parsed?.themeId || THEME_PRESETS[0].id;
-  return THEME_PRESETS.some(theme => theme.id === themeId)
-    ? { themeId }
-    : { themeId: THEME_PRESETS[0].id };
+  const parsed = readUserDataStorage(STORAGE_THEME_KEY, {});
+  const legacyThemeId = normalizeThemeId(parsed?.themeId, CONTENT_THEME_PRESETS);
+  return {
+    siteThemeId: normalizeThemeId(parsed?.siteThemeId || parsed?.themeId, SITE_THEME_PRESETS),
+    calendarThemeId: normalizeThemeId(parsed?.calendarThemeId || legacyThemeId, CONTENT_THEME_PRESETS),
+    workoutThemeId: normalizeThemeId(parsed?.workoutThemeId || legacyThemeId, CONTENT_THEME_PRESETS)
+  };
 }
 
-function saveThemeSettings(themeId) {
-  const safeThemeId = THEME_PRESETS.some(theme => theme.id === themeId) ? themeId : THEME_PRESETS[0].id;
-  writeStorage(STORAGE_THEME_KEY, { themeId: safeThemeId });
+function saveThemeSettings(nextValues) {
+  const current = getThemeSettings();
+  const merged = {
+    siteThemeId: normalizeThemeId(nextValues?.siteThemeId || current.siteThemeId, SITE_THEME_PRESETS),
+    calendarThemeId: normalizeThemeId(nextValues?.calendarThemeId || current.calendarThemeId, CONTENT_THEME_PRESETS),
+    workoutThemeId: normalizeThemeId(nextValues?.workoutThemeId || current.workoutThemeId, CONTENT_THEME_PRESETS)
+  };
+  writeUserDataStorage(STORAGE_THEME_KEY, merged);
   applyThemeSettings();
   renderThemeSettings();
 }
 
-function getCurrentThemePreset() {
-  const { themeId } = getThemeSettings();
-  return THEME_PRESETS.find(theme => theme.id === themeId) || THEME_PRESETS[0];
+function getThemePresetById(themeId, presets = CONTENT_THEME_PRESETS) {
+  return presets.find(theme => theme.id === themeId) || presets[0];
+}
+
+function getCurrentThemePresets() {
+  const { siteThemeId, calendarThemeId, workoutThemeId } = getThemeSettings();
+  return {
+    siteTheme: getThemePresetById(siteThemeId, SITE_THEME_PRESETS),
+    calendarTheme: getThemePresetById(calendarThemeId, CONTENT_THEME_PRESETS),
+    workoutTheme: getThemePresetById(workoutThemeId, CONTENT_THEME_PRESETS)
+  };
 }
 
 function hexToRgb(hex) {
@@ -787,6 +1601,23 @@ function hexToRgb(hex) {
   };
 }
 
+function rgbToHex(rgb) {
+  if (!rgb) return null;
+  return `#${[rgb.r, rgb.g, rgb.b].map(value => Math.max(0, Math.min(255, Math.round(value))).toString(16).padStart(2, "0")).join("")}`;
+}
+
+function mixHexColors(primary, secondary, primaryWeight = 0.5) {
+  const a = hexToRgb(primary);
+  const b = hexToRgb(secondary);
+  if (!a || !b) return primary || secondary || "#ffffff";
+  const weight = Math.max(0, Math.min(1, Number(primaryWeight)));
+  return rgbToHex({
+    r: a.r * weight + b.r * (1 - weight),
+    g: a.g * weight + b.g * (1 - weight),
+    b: a.b * weight + b.b * (1 - weight)
+  });
+}
+
 function getReadableTextColor(background, dark = "#111827", light = "#f8fafc") {
   const rgb = hexToRgb(background);
   if (!rgb) return dark;
@@ -795,47 +1626,150 @@ function getReadableTextColor(background, dark = "#111827", light = "#f8fafc") {
     return channel <= 0.03928 ? channel / 12.92 : Math.pow((channel + 0.055) / 1.055, 2.4);
   });
   const luminance = 0.2126 * srgb[0] + 0.7152 * srgb[1] + 0.0722 * srgb[2];
-  return luminance > 0.48 ? dark : light;
+  return luminance >= 0.58 ? dark : light;
+}
+
+function getReadableMutedTextColor(background, dark = "#6b7280", light = "#cbd5e1") {
+  return getReadableTextColor(background, dark, light);
+}
+
+function deriveContentThemeSurface(vars) {
+  const fill = vars["--card"];
+  const fillAlt = mixHexColors(vars["--primary-light"], vars["--card"], 0.38);
+  const inputBg = mixHexColors(vars["--primary-light"], vars["--card"], 0.22);
+  const chipBg = mixHexColors(vars["--primary-light"], vars["--card"], 0.58);
+  return {
+    frame: vars["--line"],
+    fill,
+    fillAlt,
+    inputBg,
+    buttonBg: vars["--primary"],
+    chipBg,
+    text: vars["--text"] || "#111827",
+    subtext: vars["--subtext"] || "#4b5563",
+    inputText: vars["--text"] || "#111827",
+    placeholderText: vars["--subtext"] || "#6b7280",
+    buttonText: getReadableTextColor(vars["--primary"], "#111827", "#f8fafc"),
+    chipText: vars["--text"] || "#111827"
+  };
+}
+
+function buildThemePreviewMarkup(theme, scope) {
+  const vars = theme.vars;
+  if (scope === "site") {
+    const shellText = getReadableTextColor(vars["--card"]);
+    const calendarText = getReadableTextColor(vars["--primary-light"]);
+    const workoutText = getReadableTextColor(vars["--primary"]);
+    return `
+      <span class="theme-preview theme-preview-site" style="background:${escapeAttr(vars["--bg"])};border-color:${escapeAttr(vars["--line"])};">
+        <span class="theme-preview-header" style="background:${escapeAttr(vars["--card"])};border-color:${escapeAttr(vars["--line"])};color:${escapeAttr(shellText)};">
+          <span class="theme-preview-chip" style="background:${escapeAttr(vars["--primary-light"])};color:${escapeAttr(calendarText)};">予定</span>
+          <span class="theme-preview-chip" style="background:${escapeAttr(vars["--primary"])};color:${escapeAttr(workoutText)};">筋トレ</span>
+          <span class="theme-preview-chip theme-preview-chip-icon" style="background:${escapeAttr(vars["--card"])};border-color:${escapeAttr(vars["--line"])};color:${escapeAttr(shellText)};">⚙</span>
+        </span>
+        <span class="theme-preview-panel" style="background:${escapeAttr(vars["--card"])};border-color:${escapeAttr(vars["--line"])};color:${escapeAttr(shellText)};">
+          <span class="theme-preview-line" style="background:${escapeAttr(vars["--primary-light"])};"></span>
+          <span class="theme-preview-label">サイト全体</span>
+        </span>
+      </span>
+    `;
+  }
+
+  const isWorkout = scope === "workout";
+  const derived = deriveContentThemeSurface(vars);
+  const cardBg = derived.fill;
+  const frameColor = derived.frame;
+  const fieldBg = derived.inputBg;
+  const buttonBg = derived.buttonBg;
+  const cardText = derived.text;
+  const fieldText = derived.inputText;
+  const buttonText = derived.buttonText;
+  const title = isWorkout ? "筋トレ入力" : "予定入力";
+  const buttonLabel = "入力";
+  const valueLabel = isWorkout ? "20.0kg" : "2026/04/25";
+  return `
+    <span class="theme-preview theme-preview-card" style="background:${escapeAttr(cardBg)};border-color:${escapeAttr(frameColor)};color:${escapeAttr(cardText)};">
+      <span class="theme-preview-title">${escapeHtml(title)}</span>
+      <span class="theme-preview-field" style="background:${escapeAttr(fieldBg)};border-color:${escapeAttr(frameColor)};color:${escapeAttr(fieldText)};">${escapeHtml(valueLabel)}</span>
+      <span class="theme-preview-button" style="background:${escapeAttr(buttonBg)};color:${escapeAttr(buttonText)};">${escapeHtml(buttonLabel)}</span>
+    </span>
+  `;
 }
 
 function applyThemeSettings() {
-  const theme = getCurrentThemePreset();
+  const { siteTheme, calendarTheme, workoutTheme } = getCurrentThemePresets();
+  const calendarSurface = deriveContentThemeSurface(calendarTheme.vars);
+  const workoutSurface = deriveContentThemeSurface(workoutTheme.vars);
+  const appHeaderText = getReadableTextColor(siteTheme.vars["--card"], "#111827", "#f8fafc");
+  const topCalendarText = getReadableTextColor(siteTheme.vars["--primary-light"], "#111827", "#f8fafc");
+  const topWorkoutText = getReadableTextColor(siteTheme.vars["--primary"], "#111827", "#f8fafc");
+  const topSettingsText = getReadableTextColor(siteTheme.vars["--card"], "#111827", "#f8fafc");
+  const settingsText = getReadableTextColor(siteTheme.vars["--card"], "#111827", "#f8fafc");
+  const loginInputText = getReadableTextColor(siteTheme.vars["--card"], "#111827", "#f8fafc");
+  const loginPlaceholderText = getReadableMutedTextColor(siteTheme.vars["--card"]);
+  const settingsPlaceholderText = getReadableMutedTextColor(siteTheme.vars["--card"]);
   const vars = {
-    ...theme.vars,
-    "--app-header-bg": theme.vars["--card"],
-    "--app-header-text": theme.vars["--text"],
-    "--top-calendar-bg": theme.vars["--primary-light"],
-    "--top-calendar-text": theme.vars["--primary-dark"],
-    "--top-workout-bg": theme.vars["--workout-primary-light"],
-    "--top-workout-text": theme.vars["--workout-primary-dark"],
-    "--top-settings-bg": theme.vars["--primary-light"],
-    "--top-settings-text": theme.vars["--primary-dark"],
-    "--calendar-frame": theme.vars["--line"],
-    "--calendar-fill": theme.vars["--card"],
-    "--calendar-fill-alt": theme.vars["--primary-light"],
-    "--calendar-text": theme.vars["--text"],
-    "--calendar-button-bg": theme.vars["--primary"],
-    "--calendar-button-text": getReadableTextColor(theme.vars["--primary"]),
-    "--calendar-input-bg": theme.vars["--card"],
-    "--calendar-input-text": getReadableTextColor(theme.vars["--card"]),
-    "--settings-frame": theme.vars["--line"],
-    "--settings-fill": theme.vars["--card"],
-    "--settings-text": theme.vars["--text"],
-    "--settings-button-bg": theme.vars["--primary"],
-    "--settings-button-text": getReadableTextColor(theme.vars["--primary"]),
-    "--settings-input-bg": theme.vars["--card"],
-    "--settings-input-text": getReadableTextColor(theme.vars["--card"]),
-    "--workout-frame": theme.vars["--workout-line"],
-    "--workout-fill": theme.vars["--workout-card"],
-    "--workout-fill-alt": theme.vars["--workout-card-alt"],
-    "--workout-button-bg": theme.vars["--workout-primary"],
-    "--workout-button-text": getReadableTextColor(theme.vars["--workout-primary"]),
-    "--workout-input-text": getReadableTextColor(theme.vars["--workout-field"])
+    ...siteTheme.vars,
+    "--today": calendarTheme.vars["--today"],
+    "--selected": calendarTheme.vars["--selected"],
+    "--workout-primary": workoutTheme.vars["--workout-primary"],
+    "--workout-primary-dark": workoutTheme.vars["--workout-primary-dark"],
+    "--workout-primary-light": workoutTheme.vars["--workout-primary-light"],
+    "--workout-accent": workoutSurface.buttonBg,
+    "--workout-chip": workoutSurface.chipBg,
+    "--workout-on-accent": workoutSurface.chipText,
+    "--workout-card": workoutSurface.fill,
+    "--workout-card-alt": workoutSurface.fillAlt,
+    "--workout-surface": workoutSurface.fillAlt,
+    "--workout-field": workoutSurface.inputBg,
+    "--workout-line": workoutSurface.frame,
+    "--workout-text": workoutSurface.text,
+    "--workout-subtext": workoutSurface.subtext,
+    "--workout-today": workoutTheme.vars["--workout-today"],
+    "--workout-selected": workoutTheme.vars["--workout-selected"],
+    "--workout-other": workoutTheme.vars["--workout-other"],
+    "--app-header-bg": siteTheme.vars["--card"],
+    "--app-header-text": appHeaderText,
+    "--top-calendar-bg": siteTheme.vars["--primary-light"],
+    "--top-calendar-text": topCalendarText,
+    "--top-workout-bg": siteTheme.vars["--primary"],
+    "--top-workout-text": topWorkoutText,
+    "--top-settings-bg": siteTheme.vars["--card"],
+    "--top-settings-text": topSettingsText,
+    "--login-input-bg": siteTheme.vars["--card"],
+    "--login-input-text": loginInputText,
+    "--login-placeholder-text": loginPlaceholderText,
+    "--calendar-frame": calendarSurface.frame,
+    "--calendar-fill": calendarSurface.fill,
+    "--calendar-fill-alt": calendarSurface.fillAlt,
+    "--calendar-text": calendarSurface.text,
+    "--calendar-subtext": calendarSurface.subtext,
+    "--calendar-button-bg": calendarSurface.buttonBg,
+    "--calendar-button-text": calendarSurface.buttonText,
+    "--calendar-input-bg": calendarSurface.inputBg,
+    "--calendar-input-text": calendarSurface.inputText,
+    "--calendar-placeholder-text": calendarSurface.placeholderText,
+    "--settings-frame": siteTheme.vars["--line"],
+    "--settings-fill": siteTheme.vars["--card"],
+    "--settings-text": settingsText,
+    "--settings-button-bg": siteTheme.vars["--primary"],
+    "--settings-button-text": getReadableTextColor(siteTheme.vars["--primary"]),
+    "--settings-input-bg": siteTheme.vars["--card"],
+    "--settings-input-text": settingsText,
+    "--settings-placeholder-text": settingsPlaceholderText,
+    "--workout-frame": workoutSurface.frame,
+    "--workout-fill": workoutSurface.fill,
+    "--workout-fill-alt": workoutSurface.fillAlt,
+    "--workout-button-bg": workoutSurface.buttonBg,
+    "--workout-button-text": workoutSurface.buttonText,
+    "--workout-input-text": workoutSurface.inputText,
+    "--workout-placeholder-text": workoutSurface.placeholderText
   };
   Object.entries(vars).forEach(([name, value]) => {
     document.documentElement.style.setProperty(name, value);
   });
-  document.body.dataset.theme = theme.id;
+  document.body.dataset.theme = `${siteTheme.id}-${calendarTheme.id}-${workoutTheme.id}`;
+  document.querySelector('meta[name="theme-color"]')?.setAttribute("content", siteTheme.vars["--primary"]);
 }
 
 function formatDateKey(dateObj) {
@@ -1398,7 +2332,7 @@ function initNumericInputAssist() {
     finishFirstNumericReplacement(input, nextValue);
   });
   document.addEventListener("focusout", event => {
-    const input = event.target.closest?.("[data-numeric-assist], .roll-direct-input, .roll-combined-input");
+    const input = event.target.closest?.("[data-numeric-assist], .roll-direct-input, .roll-combined-input, .replace-on-first-input");
     if (input) input.dataset.replaceOnFirstInput = "false";
     if (event.target.closest?.("[data-numeric-assist]")) hideNumericAssist();
   });
@@ -1430,8 +2364,35 @@ function updateAppViewTitle(viewName) {
   } else if (isSettingsView) {
     appViewTitle.textContent = "設定";
   } else {
-    appViewTitle.textContent = "カレンダー";
+    appViewTitle.textContent = "予定";
   }
+}
+
+function submitLogin() {
+  const username = loginNameInput.value.trim();
+  const password = loginPasswordInput.value;
+  if (!username || !password) {
+    alert("ユーザー名とパスワードを入力してください。");
+    return;
+  }
+
+  const settings = getLoginSettings();
+  if (!settings) {
+    saveLoginSettings(username, password);
+    setAuthenticated(true);
+    switchView(isAdminUser(username) ? "workout" : "calendar");
+    return;
+  }
+
+  if (settings.username !== username || settings.password !== password) {
+    alert("ユーザー名かパスワードが違います。");
+    loginPasswordInput.value = "";
+    selectInputText(loginPasswordInput);
+    return;
+  }
+
+  setAuthenticated(true);
+  switchView(isAdminUser(username) ? "workout" : "calendar");
 }
 
 function isRecordView(viewName) {
@@ -1510,7 +2471,7 @@ function goWorkoutToday() {
 
 function renderCalendar() {
   monthLabel.textContent = `${currentYear}年${currentMonth + 1}月`;
-  const schedules = getSchedules();
+  const schedules = getVisibleSchedules();
   const todayKey = formatDateKey(new Date());
 
   calendarGrid.innerHTML = getCalendarCells(currentYear, currentMonth).map(dateObj => {
@@ -1540,7 +2501,7 @@ function renderCalendar() {
 function renderMiniCalendar() {
   if (!miniCalendarGrid || !miniMonthLabel) return;
   miniMonthLabel.textContent = `${miniYear}年${miniMonth + 1}月`;
-  const schedules = getSchedules();
+  const schedules = getVisibleSchedules();
   const todayKey = formatDateKey(new Date());
 
   miniCalendarGrid.innerHTML = getCalendarCells(miniYear, miniMonth).map(dateObj => {
@@ -1574,6 +2535,11 @@ function renderMiniCalendar() {
 
 function renderCategorySelect(selectedId = "") {
   const categories = getCategories();
+  if (!categories.length) {
+    categorySelect.innerHTML = `<option value="">項目なし</option>`;
+    categorySelect.value = "";
+    return;
+  }
   categorySelect.innerHTML = categories.map(item => (
     `<option value="${escapeAttr(item.id)}">${escapeHtml(item.name)}</option>`
   )).join("");
@@ -1585,9 +2551,12 @@ function renderCategorySelect(selectedId = "") {
 
 function updateContentTemplateIfEmpty(force = false) {
   const category = getCategoryById(categorySelect.value);
-  if (!category) return;
+  if (!category) {
+    if (force) contentInput.value = "";
+    return;
+  }
   if (force || !contentInput.value.trim()) {
-    contentInput.value = category.template || DEFAULT_TEMPLATE;
+    contentInput.value = category.template || "";
   }
 }
 
@@ -1645,6 +2614,7 @@ function renderPhotoPreviewList() {
 
 function resetSchedulePhotos(photos = []) {
   schedulePhotoDrafts = deepCopy(Array.isArray(photos) ? photos : []).slice(0, 5);
+  schedulePhotoLoadPromise = Promise.resolve();
   if (calendarPhotoInput) calendarPhotoInput.value = "";
   renderPhotoPreviewList();
 }
@@ -1656,7 +2626,8 @@ function handleSchedulePhotoInput() {
     return;
   }
 
-  Promise.all(files.map(file => new Promise(resolve => {
+  saveRecordBtn.disabled = true;
+  schedulePhotoLoadPromise = Promise.all(files.map(file => new Promise(resolve => {
     const reader = new FileReader();
     reader.onload = () => resolve({ name: file.name, dataUrl: String(reader.result || "") });
     reader.onerror = () => resolve(null);
@@ -1665,6 +2636,8 @@ function handleSchedulePhotoInput() {
     schedulePhotoDrafts = schedulePhotoDrafts.concat(results.filter(Boolean)).slice(0, 5);
     calendarPhotoInput.value = "";
     renderPhotoPreviewList();
+  }).finally(() => {
+    saveRecordBtn.disabled = false;
   });
 }
 
@@ -1895,7 +2868,6 @@ function createZipBlob(entries) {
 
 function exportCalendarZip() {
   const schedules = getSchedules();
-  const categories = getCategories();
   const entries = [];
   const folderCounts = new Map();
 
@@ -1906,50 +2878,17 @@ function exportCalendarZip() {
         .slice()
         .sort((a, b) => String(a.start || "").localeCompare(String(b.start || "")) || (a.createdAt || 0) - (b.createdAt || 0))
         .forEach((item, index) => {
-          const category = categories.find(categoryItem => categoryItem.id === item.categoryId);
           const baseFolder = `記録カレンダー/${sanitizeZipSegment(dateKey, "日付")}/${sanitizeZipSegment(item.title || `記録${index + 1}`, "無題")}`;
           const usedCount = folderCounts.get(baseFolder) || 0;
           folderCounts.set(baseFolder, usedCount + 1);
           const folder = usedCount ? `${baseFolder}_${usedCount + 1}` : baseFolder;
-          const dataFolder = `${folder}/データ`;
-          const start = splitDateTimeValue(item.start, dateKey);
-          const end = splitDateTimeValue(item.end, dateKey);
-          const photoNames = (item.photos || []).slice(0, 5).map((photo, photoIndex) => {
-            const ext = getPhotoExtension(photo);
-            const name = sanitizeZipSegment(photo.name ? photo.name.replace(/\.[^.]+$/, "") : `写真${photoIndex + 1}`, `写真${photoIndex + 1}`);
-            return `${name}.${ext}`;
-          });
-          const record = {
-            date: dateKey,
-            startTime: start.time,
-            endTime: end.time,
-            category: category?.name || item.categoryName || "未分類",
-            title: item.title || "",
-            content: item.content || "",
-            photos: photoNames,
-            createdAt: item.createdAt || null
-          };
-          entries.push({
-            path: `${dataFolder}/記録.json`,
-            data: textToBytes(JSON.stringify(record, null, 2))
-          });
-          entries.push({
-            path: `${dataFolder}/内容.txt`,
-            data: textToBytes([
-              `日付: ${dateKey}`,
-              `開始時間: ${start.time || "-"}`,
-              `終了時間: ${end.time || "-"}`,
-              `項目: ${record.category}`,
-              `タイトル: ${record.title || "-"}`,
-              "",
-              record.content || ""
-            ].join("\n"))
-          });
           (item.photos || []).slice(0, 5).forEach((photo, photoIndex) => {
             const bytes = dataUrlToBytes(photo.dataUrl);
             if (!bytes.length) return;
+            const ext = getPhotoExtension(photo);
+            const name = sanitizeZipSegment(photo.name ? photo.name.replace(/\.[^.]+$/, "") : `写真${photoIndex + 1}`, `写真${photoIndex + 1}`);
             entries.push({
-              path: `${dataFolder}/${photoNames[photoIndex]}`,
+              path: `${folder}/${name}.${ext}`,
               data: bytes
             });
           });
@@ -1957,7 +2896,7 @@ function exportCalendarZip() {
     });
 
   if (!entries.length) {
-    alert("ZIPに出力できるカレンダー記録がありません。");
+    alert("ZIPに出力できる写真がありません。");
     return;
   }
 
@@ -2026,7 +2965,7 @@ function getOrCreateCategoryByName(name, categories) {
   const safeName = name || "未分類";
   const existing = categories.find(category => category.name === safeName);
   if (existing) return existing;
-  const category = { id: createId(), name: safeName, color: "#2563eb", template: DEFAULT_TEMPLATE };
+  const category = { id: createId(), name: safeName, color: "#2563eb", template: "" };
   categories.push(category);
   return category;
 }
@@ -2125,6 +3064,8 @@ function importCalendarCsv(text) {
       end: row.end || (normalizeCsvTime(row["終了時間"]) ? combineCsvDateTime(dateKey, row["終了時間"]) : ""),
       title: row["タイトル"] || row.title || "無題",
       content: row["内容"] || row.content || "",
+      ownerUsername: getCurrentUsername(),
+      isShared: false,
       createdAt: Number(row.createdAt || Date.now()),
       photos: parseJsonArray(row.photos).slice(0, 5)
     };
@@ -2262,11 +3203,16 @@ function importSelectedCsv(file) {
 }
 
 function openScheduleCreate() {
+  if (isAdminCalendarLocked()) {
+    alert("adminiではカレンダー予定は表示できません。");
+    return;
+  }
   scheduleEditState = null;
   renderCategorySelect();
   titleInput.value = "";
   contentInput.value = "";
   resetSchedulePhotos();
+  if (calendarShareInput) calendarShareInput.checked = false;
   setDefaultDateTimes();
   saveRecordBtn.textContent = "保存する";
   updateContentTemplateIfEmpty(false);
@@ -2274,9 +3220,13 @@ function openScheduleCreate() {
 }
 
 function openScheduleEdit(dateKey, id) {
+  if (isAdminCalendarLocked()) {
+    alert("adminiではカレンダー予定は表示できません。");
+    return;
+  }
   const schedules = getSchedules();
   const item = (schedules[dateKey] || []).find(schedule => schedule.id === id);
-  if (!item) return;
+  if (!item || !canManageScheduleItem(item)) return;
 
   scheduleEditState = { dateKey, id };
   selectedDate = dateKey;
@@ -2287,6 +3237,7 @@ function openScheduleEdit(dateKey, id) {
   titleInput.value = item.title || "";
   contentInput.value = item.content || "";
   resetSchedulePhotos(item.photos || []);
+  if (calendarShareInput) calendarShareInput.checked = !!item.isShared;
   startDateTimeInput.value = item.start || `${dateKey}T00:00`;
   endDateTimeInput.value = item.end || `${dateKey}T00:00`;
   normalizeDateTimeYearInput(startDateTimeInput);
@@ -2295,13 +3246,20 @@ function openScheduleEdit(dateKey, id) {
   switchView("input");
 }
 
-function addSchedule() {
+async function addSchedule() {
+  if (isAdminCalendarLocked()) {
+    alert("adminiではカレンダー予定を保存できません。");
+    return;
+  }
+  await schedulePhotoLoadPromise;
   const category = getCategoryById(categorySelect.value) || getCategories()[0];
   const title = titleInput.value.trim();
   const content = contentInput.value.trim();
   const start = startDateTimeInput.value;
   const end = endDateTimeInput.value;
   const dateKey = start ? start.slice(0, 10) : selectedDate;
+  const currentUsername = getCurrentUsername();
+  const isShared = !!calendarShareInput?.checked;
 
   if (!title && !content) {
     alert("タイトルか内容を入力してください。");
@@ -2320,6 +3278,8 @@ function addSchedule() {
     end,
     title: title || "無題",
     content,
+    ownerUsername: currentUsername,
+    isShared,
     photos: deepCopy(schedulePhotoDrafts).slice(0, 5),
     createdAt: Date.now()
   };
@@ -2328,6 +3288,7 @@ function addSchedule() {
     const oldDateKey = scheduleEditState.dateKey;
     const original = (schedules[oldDateKey] || []).find(item => item.id === scheduleEditState.id);
     nextItem.createdAt = original?.createdAt || nextItem.createdAt;
+    nextItem.ownerUsername = getScheduleOwnerUsername(original, currentUsername);
     schedules[oldDateKey] = (schedules[oldDateKey] || []).filter(item => item.id !== scheduleEditState.id);
     if (!schedules[oldDateKey].length) delete schedules[oldDateKey];
     if (!schedules[dateKey]) schedules[dateKey] = [];
@@ -2338,12 +3299,14 @@ function addSchedule() {
   }
 
   saveSchedules(schedules);
+  syncSharedScheduleItem(dateKey, nextItem);
   selectedDate = dateKey;
   currentYear = Number(dateKey.slice(0, 4));
   currentMonth = Number(dateKey.slice(5, 7)) - 1;
   titleInput.value = "";
   contentInput.value = "";
   resetSchedulePhotos();
+  if (calendarShareInput) calendarShareInput.checked = false;
   saveRecordBtn.textContent = "保存する";
   renderCalendar();
   renderMiniCalendar();
@@ -2353,7 +3316,7 @@ function addSchedule() {
 }
 
 function renderScheduleList() {
-  const schedules = getSchedules();
+  const schedules = getVisibleSchedules();
   const items = (schedules[selectedDate] || []).slice().sort((a, b) => {
     return String(a.start || "").localeCompare(String(b.start || "")) || (a.createdAt || 0) - (b.createdAt || 0);
   });
@@ -2364,7 +3327,7 @@ function renderScheduleList() {
     scheduleList.innerHTML = `
       <div class="timeline-empty">
         <div class="timeline-empty-date">${escapeHtml(formatDisplayDate(selectedDate))}</div>
-        <p class="empty-text">この日の予定はまだありません。</p>
+        <p class="empty-text">${isAdminUser() ? "共有予定はまだありません。" : "この日の予定はまだありません。"}</p>
       </div>
     `;
     return;
@@ -2373,9 +3336,14 @@ function renderScheduleList() {
   scheduleList.innerHTML = items.map(item => {
     const category = getCategoryById(item.categoryId);
     const color = item.color || category?.color || "#2563eb";
-    const categoryName = category?.name || item.categoryName || "未分類";
+    const categoryName = item.categoryName || category?.name || "未分類";
     const timeText = formatScheduleSummaryTime(item.start, item.end);
     const fullTimeText = formatDateTimeRange(item.start, item.end);
+    const canManage = canManageScheduleItem(item);
+    const ownerUsername = getScheduleOwnerUsername(item);
+    const sharedChip = item.isShared
+      ? `<span class="schedule-share-chip">${escapeHtml(ownerUsername && ownerUsername !== getCurrentUsername() ? `共有・${ownerUsername}` : "共有")}</span>`
+      : "";
     return `
       <details class="schedule-item schedule-detail-item" style="--item-color:${escapeAttr(color)}">
         <summary class="schedule-summary-row">
@@ -2384,16 +3352,21 @@ function renderScheduleList() {
         </summary>
         <div class="schedule-body">
           <div class="schedule-top">
-            <div class="schedule-category" style="background:${escapeAttr(color)}">${escapeHtml(categoryName)}</div>
+            <div class="schedule-meta-row">
+              <div class="schedule-category" style="background:${escapeAttr(color)}">${escapeHtml(categoryName)}</div>
+              ${sharedChip}
+            </div>
             <div class="schedule-detail-time">${escapeHtml(fullTimeText)}</div>
           </div>
           <div class="schedule-content">${escapeHtml(item.content || "")}</div>
           ${renderSchedulePhotos(item.photos || [])}
         </div>
-        <div class="schedule-actions">
-          <button class="sub-btn" type="button" data-edit-schedule="${escapeAttr(item.id)}">編集</button>
-          <button class="delete-btn" type="button" data-delete-schedule="${escapeAttr(item.id)}">削除</button>
-        </div>
+        ${canManage ? `
+          <div class="schedule-actions">
+            <button class="sub-btn" type="button" data-edit-schedule="${escapeAttr(item.id)}">編集</button>
+            <button class="close-x-btn inline-x-btn" type="button" data-delete-schedule="${escapeAttr(item.id)}" aria-label="予定を削除">×</button>
+          </div>
+        ` : ""}
       </details>
     `;
   }).join("");
@@ -2416,11 +3389,21 @@ function renderScheduleList() {
 }
 
 function deleteSchedule(dateKey, id) {
+  if (isAdminCalendarLocked()) return;
   const schedules = getSchedules();
   if (!schedules[dateKey]) return;
+  const deletedItem = (schedules[dateKey] || []).find(item => item.id === id);
+  if (deletedItem && !canManageScheduleItem(deletedItem)) return;
   schedules[dateKey] = schedules[dateKey].filter(item => item.id !== id);
   if (schedules[dateKey].length === 0) delete schedules[dateKey];
   saveSchedules(schedules);
+  if (deletedItem) {
+    syncSharedScheduleItem(dateKey, {
+      id: deletedItem.id,
+      ownerUsername: getScheduleOwnerUsername(deletedItem),
+      isShared: false
+    });
+  }
   renderCalendar();
   renderMiniCalendar();
   renderScheduleList();
@@ -2433,11 +3416,25 @@ function addCategory() {
   }
 
   const categories = getCategories();
-  categories.push({ id: createId(), name, color: "#2563eb", template: DEFAULT_TEMPLATE });
+  categories.push({ id: createId(), name, color: "#2563eb", template: "" });
   saveCategories(categories);
   newCategoryInput.value = "";
   renderCategorySelect();
   renderCategorySettingsList();
+}
+
+function moveCategory(id, offset) {
+  const categories = getCategories();
+  const index = categories.findIndex(item => item.id === id);
+  const nextIndex = index + offset;
+  if (index < 0 || nextIndex < 0 || nextIndex >= categories.length) return;
+  const [item] = categories.splice(index, 1);
+  categories.splice(nextIndex, 0, item);
+  saveCategories(categories);
+  renderCategorySelect(id);
+  renderCategorySettingsList();
+  renderCalendar();
+  renderScheduleList();
 }
 
 function renderCategorySettingsList() {
@@ -2451,7 +3448,12 @@ function renderCategorySettingsList() {
     <article class="setting-item" data-category-id="${escapeAttr(item.id)}">
       <div class="setting-item-top">
         <div class="setting-item-title">${escapeHtml(item.name)}</div>
-        <input class="color-input" type="color" data-category-color value="${escapeAttr(item.color)}" aria-label="色" />
+        <div class="setting-item-actions">
+          <button class="order-btn" type="button" data-move-category="-1" aria-label="上へ移動">↑</button>
+          <button class="order-btn" type="button" data-move-category="1" aria-label="下へ移動">↓</button>
+          <input class="color-input" type="color" data-category-color value="${escapeAttr(item.color)}" aria-label="色" />
+          <button class="close-x-btn inline-x-btn" type="button" data-delete-category aria-label="項目を削除">×</button>
+        </div>
       </div>
       <div class="form-group">
         <label>項目名</label>
@@ -2463,7 +3465,6 @@ function renderCategorySettingsList() {
       </div>
       <div class="small-btn-row">
         <button class="save-small-btn" type="button" data-save-category>保存</button>
-        <button class="delete-small-btn" type="button" data-delete-category>削除</button>
       </div>
     </article>
   `).join("");
@@ -2472,6 +3473,9 @@ function renderCategorySettingsList() {
     const id = card.dataset.categoryId;
     card.querySelector("[data-save-category]").addEventListener("click", () => saveCategorySetting(card, id));
     card.querySelector("[data-delete-category]").addEventListener("click", () => deleteCategory(id));
+    card.querySelectorAll("[data-move-category]").forEach(button => {
+      button.addEventListener("click", () => moveCategory(id, Number(button.dataset.moveCategory)));
+    });
   });
 }
 
@@ -2488,7 +3492,7 @@ function saveCategorySetting(card, id) {
 
   target.name = name;
   target.color = card.querySelector("[data-category-color]").value || "#2563eb";
-  target.template = card.querySelector("[data-category-template]").value || DEFAULT_TEMPLATE;
+  target.template = card.querySelector("[data-category-template]").value;
   saveCategories(categories);
   renderCategorySelect(id);
   renderCategorySettingsList();
@@ -2775,26 +3779,34 @@ function getActiveWorkoutSetNo() {
   return Math.min(Math.max(1, Number(workoutState.currentSet || 1)), getTargetSets());
 }
 
+function createEmptyWorkoutDraft() {
+  return { weight: "", reps: "", memo: "", assist: false };
+}
+
 function ensureWorkoutDraftsSize() {
   const targetSets = getTargetSets();
   for (let i = 1; i <= targetSets; i++) {
     if (!workoutDraftInputs[i]) {
-      workoutDraftInputs[i] = { weight: "", reps: "", memo: "", assist: false };
+      workoutDraftInputs[i] = createEmptyWorkoutDraft();
     }
   }
 }
 
+function saveWorkoutSetDraftFromCard(card) {
+  if (!card) return;
+  const setNo = Number(card.dataset.setForm || 0);
+  if (!setNo) return;
+  workoutDraftInputs[setNo] = {
+    weight: formatWeightRollValue(card.querySelector("[data-weight]")?.value),
+    reps: formatRepsRollValue(card.querySelector("[data-reps]")?.value),
+    memo: card.querySelector("[data-memo]")?.value || "",
+    assist: !!card.querySelector("[data-assist]")?.checked
+  };
+}
+
 function saveCurrentSetDraft() {
   if (isCardioBodyPart()) return;
-  const box = setFormsWrap.querySelector("[data-set-form]");
-  if (!box) return;
-  const setNo = Number(box.dataset.setForm);
-  workoutDraftInputs[setNo] = {
-    weight: formatWeightRollValue(box.querySelector("[data-weight]").value),
-    reps: formatRepsRollValue(box.querySelector("[data-reps]").value),
-    memo: box.querySelector("[data-memo]").value,
-    assist: box.querySelector("[data-assist]").checked
-  };
+  setFormsWrap.querySelectorAll("[data-set-form]").forEach(saveWorkoutSetDraftFromCard);
 }
 
 function getCurrentSetFormData(setNo) {
@@ -2812,80 +3824,231 @@ function getCurrentSetFormData(setNo) {
   };
 }
 
+function hasWorkoutSetContent(log) {
+  return Number(log?.weight || 0) > 0 ||
+    Number(log?.reps || 0) > 0 ||
+    !!String(log?.memo || "").trim() ||
+    !!log?.assist;
+}
+
+function buildWorkoutLogsForSave() {
+  saveCurrentSetDraft();
+  const targetSets = getTargetSets();
+  for (let setNo = 1; setNo <= targetSets; setNo++) {
+    const draftLog = getCurrentSetFormData(setNo);
+    const existing = workoutState.setLogs.find(log => Number(log.setNo) === setNo);
+    if (!hasWorkoutSetContent(draftLog) && !existing) continue;
+    workoutState.setLogs[setNo - 1] = {
+      ...draftLog,
+      setNo,
+      workSec: Number(existing?.workSec || 0),
+      restSec: Number(existing?.restSec || 0),
+      rm: calcEstimated1RM(draftLog.weight, draftLog.reps)
+    };
+  }
+  return workoutState.setLogs
+    .filter(log => log && Number(log.setNo || 0) <= targetSets)
+    .filter(log => hasWorkoutSetContent(log) || Number(log.workSec || 0) > 0 || Number(log.restSec || 0) > 0)
+    .sort((a, b) => Number(a.setNo || 0) - Number(b.setNo || 0));
+}
+
+function getWorkoutSetSnapshot(setNo) {
+  const draft = workoutDraftInputs[setNo] || createEmptyWorkoutDraft();
+  const weight = formatWeightRollValue(draft.weight);
+  const reps = formatRepsRollValue(draft.reps);
+  return {
+    setNo,
+    weight,
+    reps,
+    memo: draft.memo || "",
+    assist: !!draft.assist,
+    rm: calcEstimated1RM(weight, reps) || "-",
+    existingLog: workoutState.setLogs.find(log => Number(log.setNo) === setNo) || null
+  };
+}
+
+function getWorkoutSetMetricText(snapshot) {
+  return `${snapshot.weight || "-"}kg / ${snapshot.reps || "-"}回 / RM ${snapshot.rm}`;
+}
+
+function getWorkoutSetStatusText(snapshot) {
+  if (snapshot.existingLog) {
+    return `実施 ${formatSeconds(snapshot.existingLog.workSec || 0)}`;
+  }
+  return snapshot.weight || snapshot.reps ? "編集中" : "未入力";
+}
+
+function updateWorkoutSetSummaryButton(setNo) {
+  const button = setFormsWrap.querySelector(`[data-set-summary="${setNo}"]`);
+  if (!button) return;
+  const snapshot = getWorkoutSetSnapshot(setNo);
+  const meta = button.querySelector(".set-summary-row-meta");
+  const status = button.querySelector(".set-summary-row-status");
+  if (meta) meta.textContent = getWorkoutSetMetricText(snapshot);
+  if (status) status.textContent = getWorkoutSetStatusText(snapshot);
+}
+
+function syncDirectSetCardActiveState() {
+  const activeSetNo = getActiveWorkoutSetNo();
+  const currentModeLocked = workoutState.mode === "work" || workoutState.mode === "rest";
+  setFormsWrap.querySelectorAll("[data-set-form]").forEach(card => {
+    const cardSetNo = Number(card.dataset.setForm || 0);
+    const isActive = cardSetNo === activeSetNo;
+    card.classList.toggle("active", isActive);
+    card.classList.toggle("is-locked", currentModeLocked && !isActive);
+    card.querySelectorAll("input, textarea").forEach(input => {
+      if (input.matches("[data-weight],[data-reps],[data-assist],[data-memo]")) {
+        input.disabled = currentModeLocked && !isActive;
+      }
+    });
+    card.querySelectorAll("[data-copy-field]").forEach(button => {
+      button.disabled = currentModeLocked && !isActive;
+    });
+  });
+}
+
+function copyWorkoutFieldFromPrevious(setNo, fieldName) {
+  if (setNo <= 1) return;
+  ensureWorkoutDraftsSize();
+  const previous = workoutDraftInputs[setNo - 1] || createEmptyWorkoutDraft();
+  const current = workoutDraftInputs[setNo] || createEmptyWorkoutDraft();
+  workoutDraftInputs[setNo] = {
+    ...current,
+    [fieldName]: previous[fieldName] ?? current[fieldName]
+  };
+}
+
 function buildSetForms() {
   ensureWorkoutDraftsSize();
-  const setNo = getActiveWorkoutSetNo();
+  const activeSetNo = getActiveWorkoutSetNo();
   const targetSets = getTargetSets();
-  const draft = workoutDraftInputs[setNo] || { weight: "", reps: "", memo: "", assist: false };
-  const existingLog = workoutState.setLogs.find(log => Number(log.setNo) === setNo);
-
-  setFormsWrap.innerHTML = `
-    <article class="set-form-item active-set-card" data-set-form="${setNo}">
-      <div class="set-top-row compact-top-row">
-        <div class="set-now-title">${setNo}セット目</div>
-        <div class="set-config-inline">
-          <span class="set-config-label">セット数</span>
-          <span class="set-config-edit">
-            <input id="setsInlineInput" class="metric-number-input set-count-number-input" type="number" inputmode="numeric" min="1" max="30" step="1" value="${escapeAttr(targetSets)}" data-numeric-assist data-numeric-label="セット数" data-numeric-step="1" data-numeric-min="1" data-numeric-max="30" />
-          </span>
-          <span class="set-config-unit">セット</span>
+  const currentModeLocked = workoutState.mode === "work" || workoutState.mode === "rest";
+  const setCardsHtml = Array.from({ length: targetSets }, (_, index) => {
+    const setNo = index + 1;
+    const snapshot = getWorkoutSetSnapshot(setNo);
+    const existingLog = snapshot.existingLog;
+    const isActive = setNo === activeSetNo;
+    const isDisabled = currentModeLocked && !isActive;
+    const statusText = getWorkoutSetStatusText(snapshot);
+    const weightCopyBtn = setNo > 1 ? `<button class="copy-inline-btn" type="button" data-copy-field="weight" aria-label="前のセットの重量をコピー" ${isDisabled ? "disabled" : ""}>➥</button>` : "";
+    const repsCopyBtn = setNo > 1 ? `<button class="copy-inline-btn" type="button" data-copy-field="reps" aria-label="前のセットの回数をコピー" ${isDisabled ? "disabled" : ""}>➥</button>` : "";
+    const memoCopyBtn = setNo > 1 ? `<button class="copy-inline-btn" type="button" data-copy-field="memo" aria-label="前のセットのメモをコピー" ${isDisabled ? "disabled" : ""}>➥</button>` : "";
+    return `
+      <article class="set-form-item set-direct-card ${isActive ? "active" : ""} ${isDisabled ? "is-locked" : ""}" data-set-form="${setNo}">
+        <div class="set-direct-head">
+          <div class="set-title-status">
+            <span class="set-now-title">${setNo}セット目</span>
+            <span class="set-direct-status" data-set-status>(${escapeHtml(statusText)})</span>
+          </div>
+          <div class="set-head-actions">
+            <label class="set-assist-inline set-assist-inline-top">
+              <input type="checkbox" data-assist ${snapshot.assist ? "checked" : ""} ${isDisabled ? "disabled" : ""} />
+              補助
+            </label>
+            <strong class="set-rm-inline set-rm-inline-compact" data-rm-display>RM ${escapeHtml(calcEstimated1RM(snapshot.weight, snapshot.reps) || "-")}</strong>
+          </div>
         </div>
-      </div>
-      <div class="set-middle-row compact-middle-row">
-        <label class="set-inline-field">
-          <span>重量</span>
-          <input class="metric-number-input" type="number" inputmode="decimal" min="0" max="300" step="0.1" data-weight value="${escapeAttr(formatWeightRollValue(draft.weight))}" data-numeric-assist data-numeric-label="重量" data-numeric-step="0.1" data-numeric-min="0" data-numeric-max="300" />
-          <em>kg</em>
-        </label>
-        <label class="set-inline-field">
-          <span>回数</span>
-          <input class="metric-number-input" type="number" inputmode="numeric" min="0" max="300" step="1" data-reps value="${escapeAttr(formatRepsRollValue(draft.reps))}" data-numeric-assist data-numeric-label="回数" data-numeric-step="1" data-numeric-min="0" data-numeric-max="300" />
-          <em>回</em>
-        </label>
-        <div class="set-rm-assist-row">
-          <div class="set-rm-inline" data-rm-display>RM ${escapeHtml(calcEstimated1RM(draft.weight, draft.reps) || "-")}</div>
-          <label class="set-assist-inline">
-            <input type="checkbox" data-assist ${draft.assist ? "checked" : ""} />
-            補助
+        <div class="set-direct-metrics">
+          <label class="set-inline-field set-inline-field-compact">
+            <span class="field-label-with-copy">重量${weightCopyBtn}</span>
+            <input class="metric-number-input replace-on-first-input" type="number" inputmode="decimal" min="0" max="300" step="0.1" data-weight value="${escapeAttr(formatWeightRollValue(snapshot.weight))}" ${isDisabled ? "disabled" : ""} />
+            <em>kg</em>
+          </label>
+          <label class="set-inline-field set-inline-field-compact">
+            <span class="field-label-with-copy">回数${repsCopyBtn}</span>
+            <input class="metric-number-input replace-on-first-input" type="number" inputmode="numeric" min="0" max="300" step="1" data-reps value="${escapeAttr(formatRepsRollValue(snapshot.reps))}" ${isDisabled ? "disabled" : ""} />
+            <em>回</em>
           </label>
         </div>
-      </div>
-      <div class="set-bottom-row compact-bottom-row">
-        <div class="set-memo-label">メモ</div>
-        <textarea rows="3" data-memo placeholder="フォームや体感など">${escapeHtml(draft.memo)}</textarea>
-      </div>
-      ${existingLog ? `<div class="workout-log-item-body">記録済み: 実施 ${formatSeconds(existingLog.workSec)} / 休憩 ${formatSeconds(existingLog.restSec || 0)}</div>` : ""}
-    </article>
+        <div class="set-bottom-row compact-bottom-row set-memo-row">
+          <div class="set-memo-label field-label-with-copy">メモ${memoCopyBtn}</div>
+          <textarea class="set-memo-input" rows="2" data-memo placeholder="フォームや体感など" ${isDisabled ? "disabled" : ""}>${escapeHtml(snapshot.memo)}</textarea>
+        </div>
+        ${existingLog ? `<div class="workout-log-item-body">実施済み: 実施 ${formatSeconds(existingLog.workSec || 0)} / 休憩 ${formatSeconds(existingLog.restSec || 0)}</div>` : ""}
+      </article>
+    `;
+  }).join("");
+
+  setFormsWrap.innerHTML = `
+    <div class="set-direct-list">
+      ${setCardsHtml}
+    </div>
+    <div class="set-count-actions" aria-label="セット数調整">
+      <button class="stepper-btn" type="button" data-set-count-minus aria-label="セット数を減らす">-</button>
+      <button class="stepper-btn" type="button" data-set-count-plus aria-label="セット数を増やす">+</button>
+    </div>
   `;
 
-  const box = setFormsWrap.querySelector("[data-set-form]");
-  const updateDraftAndRm = () => {
-    saveCurrentSetDraft();
-    const current = workoutDraftInputs[setNo] || {};
-    box.querySelector("[data-rm-display]").textContent = `RM ${calcEstimated1RM(current.weight, current.reps) || "-"}`;
+  const refreshSetCard = card => {
+    const setNo = Number(card.dataset.setForm || 0);
+    if (!setNo) return;
+    saveWorkoutSetDraftFromCard(card);
+    const current = workoutDraftInputs[setNo] || createEmptyWorkoutDraft();
+    const rmText = calcEstimated1RM(current.weight, current.reps) || "-";
+    const statusText = getWorkoutSetStatusText(getWorkoutSetSnapshot(setNo));
+    card.querySelector("[data-rm-display]").textContent = `RM ${rmText}`;
+    card.querySelector("[data-set-status]").textContent = `(${statusText})`;
   };
 
-  box.querySelectorAll("input, textarea").forEach(input => {
-    input.addEventListener("input", updateDraftAndRm);
-    input.addEventListener("change", updateDraftAndRm);
-  });
-  box.querySelector("[data-weight]").addEventListener("change", event => {
-    event.target.value = formatWeightRollValue(event.target.value);
-    updateDraftAndRm();
-  });
-  box.querySelector("[data-reps]").addEventListener("change", event => {
-    event.target.value = formatRepsRollValue(event.target.value);
-    updateDraftAndRm();
+  setFormsWrap.querySelectorAll("[data-set-form]").forEach(card => {
+    const setNo = Number(card.dataset.setForm || 0);
+    card.querySelectorAll("input, textarea").forEach(input => {
+      input.addEventListener("focus", () => {
+        if (currentModeLocked) return;
+        workoutState.currentSet = setNo;
+        if (input.matches(".replace-on-first-input")) armReplaceOnFirstNumericInput(input);
+        syncDirectSetCardActiveState();
+        renderWorkoutState();
+      });
+      input.addEventListener("input", () => refreshSetCard(card));
+      input.addEventListener("change", () => refreshSetCard(card));
+    });
+    card.querySelector("[data-weight]")?.addEventListener("change", event => {
+      event.target.value = formatWeightRollValue(event.target.value);
+      refreshSetCard(card);
+    });
+    card.querySelector("[data-reps]")?.addEventListener("change", event => {
+      event.target.value = formatRepsRollValue(event.target.value);
+      refreshSetCard(card);
+    });
+    card.querySelectorAll("[data-copy-field]").forEach(button => {
+      button.addEventListener("click", event => {
+        event.preventDefault();
+        event.stopPropagation();
+        if (currentModeLocked) return;
+        const fieldName = button.dataset.copyField;
+        copyWorkoutFieldFromPrevious(setNo, fieldName);
+        buildSetForms();
+      });
+    });
+    card.addEventListener("click", event => {
+      if (currentModeLocked) return;
+      if (event.target.closest("button")) return;
+      workoutState.currentSet = setNo;
+      syncDirectSetCardActiveState();
+      renderWorkoutState();
+    });
   });
 
-  const inlineSetsInput = $("setsInlineInput");
-  inlineSetsInput.addEventListener("input", () => {
-    setWorkoutSetCount(inlineSetsInput.value, { allowEmpty: true });
-  });
-  inlineSetsInput.addEventListener("change", () => {
-    setWorkoutSetCount(inlineSetsInput.value);
+  const adjustSetCount = delta => {
+    saveCurrentSetDraft();
+    const currentCount = getTargetSets();
+    const nextCount = Math.max(1, currentCount + delta);
+    if (nextCount === currentCount) return;
+    if (delta > 0 && !workoutDraftInputs[nextCount]) {
+      const previous = workoutDraftInputs[nextCount - 1] || createEmptyWorkoutDraft();
+      workoutDraftInputs[nextCount] = { ...previous };
+    }
+    setWorkoutSetCount(nextCount);
+    if (workoutState.currentSet > nextCount) {
+      workoutState.currentSet = nextCount;
+    }
     buildSetForms();
-  });
+  };
+
+  setFormsWrap.querySelector("[data-set-count-minus]")?.addEventListener("click", () => adjustSetCount(-1));
+  setFormsWrap.querySelector("[data-set-count-plus]")?.addEventListener("click", () => adjustSetCount(1));
+  syncDirectSetCardActiveState();
 }
 
 function resetWorkoutState() {
@@ -3087,20 +4250,22 @@ function saveWorkoutSession(isAutoSave = false) {
     return;
   }
 
-  if (!workoutState.setLogs.length) {
+  const logsToSave = buildWorkoutLogsForSave();
+  if (!logsToSave.length) {
     if (!isAutoSave) alert("保存できる記録がありません。");
     return;
   }
 
   const sessions = getWorkoutSessions();
   if (!sessions[dateKey]) sessions[dateKey] = [];
+  const actualSetCount = logsToSave.length;
   sessions[dateKey].push({
     id: createId(),
     bodyPart,
     exercise,
-    targetSets: getTargetSets(),
+    targetSets: actualSetCount,
     memo: workoutMemo.value || "",
-    setLogs: deepCopy(workoutState.setLogs),
+    setLogs: deepCopy(logsToSave),
     createdAt: Date.now()
   });
 
@@ -3267,6 +4432,185 @@ function renderWorkoutDashboard() {
   ].join("");
 }
 
+function getAllWorkoutItems() {
+  const sessions = getWorkoutSessions();
+  return Object.entries(sessions).flatMap(([dateKey, items]) => (
+    (items || []).map(item => ({ ...item, dateKey }))
+  ));
+}
+
+function getWorkoutMonthItemsForUsername(username, year = workoutMiniYear, month = workoutMiniMonth) {
+  const monthPrefix = `${year}-${String(month + 1).padStart(2, "0")}-`;
+  const sessions = readUserDataStorageForUsername(STORAGE_WORKOUT_SESSION_KEY, username, {});
+  return Object.entries(sessions)
+    .filter(([dateKey]) => dateKey.startsWith(monthPrefix))
+    .flatMap(([dateKey, items]) => (
+      (items || []).map(item => ({
+        ...item,
+        dateKey,
+        username,
+        nickname: getUserNickname(username)
+      }))
+    ));
+}
+
+function getAllWorkoutMonthItemsForUsers(year = workoutMiniYear, month = workoutMiniMonth) {
+  return Object.keys(getUserAccounts()).flatMap(username => getWorkoutMonthItemsForUsername(username, year, month));
+}
+
+function getWorkoutItemWorkSeconds(item) {
+  if (isCardioSession(item)) {
+    return Number(item.cardioData?.durationSec || 0);
+  }
+  return (item.setLogs || []).reduce((sum, log) => sum + Number(log.workSec || 0), 0);
+}
+
+function buildWorkoutRankingRows(entries, formatValue) {
+  const topItems = entries
+    .filter(item => Number(item.value || 0) > 0)
+    .sort((a, b) => Number(b.value || 0) - Number(a.value || 0))
+    .slice(0, 10);
+
+  return Array.from({ length: 10 }, (_, index) => {
+    const item = topItems[index];
+    if (!item) {
+      return `
+        <li class="workout-ranking-row">
+          <span class="workout-ranking-rank">${index + 1}</span>
+          <span class="workout-ranking-name">-</span>
+          <strong class="workout-ranking-value">-</strong>
+        </li>
+      `;
+    }
+    return `
+      <li class="workout-ranking-row">
+        <span class="workout-ranking-rank">${index + 1}</span>
+        <span class="workout-ranking-name">${escapeHtml(item.label)}</span>
+        <strong class="workout-ranking-value">${escapeHtml(formatValue(item.value, item))}</strong>
+      </li>
+    `;
+  }).join("");
+}
+
+function renderWorkoutRankingCard(title, entries, formatValue) {
+  return `
+    <article class="workout-ranking-panel">
+      <h3>${escapeHtml(title)}</h3>
+      <ol class="workout-ranking-list">
+        ${buildWorkoutRankingRows(entries, formatValue)}
+      </ol>
+    </article>
+  `;
+}
+
+function renderWorkoutRankingsLegacy() {
+  if (!workoutRankingGrid) return;
+  const items = getAllWorkoutItems();
+
+  const timeEntries = items.map(item => ({
+    label: `${item.dateKey} ${item.bodyPart} / ${item.exercise}`,
+    value: isCardioSession(item)
+      ? Number(item.cardioData?.durationSec || 0)
+      : (item.setLogs || []).reduce((sum, log) => sum + Number(log.workSec || 0), 0)
+  }));
+
+  const weightEntries = items.flatMap(item => (
+    (item.setLogs || [])
+      .filter(log => Number(log.weight || 0) > 0)
+      .map((log, index) => ({
+        label: `${item.dateKey} ${item.exercise} ${index + 1}セット目`,
+        value: Number(log.weight || 0)
+      }))
+  ));
+
+  const rmEntries = items.flatMap(item => (
+    (item.setLogs || [])
+      .filter(log => Number(log.rm || 0) > 0)
+      .map((log, index) => ({
+        label: `${item.dateKey} ${item.exercise} ${index + 1}セット目`,
+        value: Number(log.rm || 0)
+      }))
+  ));
+
+  const popularMap = new Map();
+  items.forEach(item => {
+    const key = `${item.bodyPart} / ${item.exercise}`;
+    popularMap.set(key, (popularMap.get(key) || 0) + 1);
+  });
+  const popularEntries = Array.from(popularMap.entries()).map(([label, value]) => ({ label, value }));
+
+  workoutRankingGrid.innerHTML = [
+    renderWorkoutRankingCard("時間", timeEntries, value => formatSeconds(value)),
+    renderWorkoutRankingCard("重さ", weightEntries, value => `${formatWeightNumber(value)}kg`),
+    renderWorkoutRankingCard("最高RM", rmEntries, value => `${formatWeightNumber(value)}kg`),
+    renderWorkoutRankingCard("人気の筋トレ", popularEntries, value => `${value}回`)
+  ].join("");
+}
+
+function renderWorkoutRankings() {
+  if (!workoutRankingGrid) return;
+  const monthText = `${workoutMiniYear}年${workoutMiniMonth + 1}月`;
+  const items = getAllWorkoutMonthItemsForUsers();
+  const timeMap = new Map();
+  const weightMap = new Map();
+  const rmMap = new Map();
+  const popularMap = new Map();
+
+  items.forEach(item => {
+    const nickname = item.nickname || item.username;
+    const dateText = formatDisplayDate(item.dateKey);
+    const dayKey = `${item.username}__${item.dateKey}`;
+    const workSeconds = getWorkoutItemWorkSeconds(item);
+    if (workSeconds > 0) {
+      if (!timeMap.has(dayKey)) {
+        timeMap.set(dayKey, {
+          label: `${nickname} / ${dateText}`,
+          value: 0
+        });
+      }
+      timeMap.get(dayKey).value += workSeconds;
+    }
+
+    const maxWeight = Math.max(0, ...(item.setLogs || []).map(log => Number(log.weight || 0)));
+    if (maxWeight > 0) {
+      const currentWeight = weightMap.get(dayKey);
+      if (!currentWeight || maxWeight > currentWeight.value) {
+        weightMap.set(dayKey, {
+          label: `${nickname} / ${dateText} / ${item.exercise}`,
+          value: maxWeight
+        });
+      }
+    }
+
+    const maxRm = Math.max(0, ...(item.setLogs || []).map(log => Number(log.rm || 0)));
+    if (maxRm > 0) {
+      const currentRm = rmMap.get(dayKey);
+      if (!currentRm || maxRm > currentRm.value) {
+        rmMap.set(dayKey, {
+          label: `${nickname} / ${dateText} / ${item.exercise}`,
+          value: maxRm
+        });
+      }
+    }
+
+    const popularKey = `${item.bodyPart} / ${item.exercise}`;
+    popularMap.set(popularKey, (popularMap.get(popularKey) || 0) + 1);
+  });
+
+  const timeEntries = Array.from(timeMap.values());
+  const weightEntries = Array.from(weightMap.values());
+  const rmEntries = Array.from(rmMap.values());
+  const popularEntries = Array.from(popularMap.entries()).map(([label, value]) => ({ label, value }));
+
+  workoutRankingGrid.innerHTML = [
+    `<div class="workout-ranking-month">${escapeHtml(monthText)}ランキング</div>`,
+    renderWorkoutRankingCard("実施時間", timeEntries, value => formatSeconds(value)),
+    renderWorkoutRankingCard("重さ", weightEntries, value => `${formatWeightNumber(value)}kg`),
+    renderWorkoutRankingCard("最高RM", rmEntries, value => `${formatWeightNumber(value)}kg`),
+    renderWorkoutRankingCard("人気の筋トレ", popularEntries, value => `${value}回`)
+  ].join("");
+}
+
 function formatCardioValue(value, unit = "") {
   return value !== "" && value != null ? `${escapeHtml(value)}${escapeHtml(unit)}` : "-";
 }
@@ -3319,6 +4663,7 @@ function renderWorkoutHistory() {
   const items = (sessions[dateKey] || []).slice().sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
 
   renderWorkoutDashboard();
+  renderWorkoutRankings();
   workoutItemCount.textContent = `${items.length}件`;
   if (!items.length) {
     workoutHistoryList.innerHTML = `<p class="empty-text">まだ筋トレ記録はありません。</p>`;
@@ -3429,7 +4774,7 @@ function loadPreviousWorkout() {
 
   const sourceLogs = latest.setLogs || [];
   const sourceSetCount = sourceLogs.length || latest.targetSets || 1;
-  setsInput.value = String(sourceSetCount);
+  setWorkoutSetCount(sourceSetCount);
   workoutDraftInputs = {};
   for (let i = 1; i <= getTargetSets(); i++) {
     const sourceLog = sourceLogs[i - 1] || sourceLogs[sourceLogs.length - 1] || {};
@@ -3447,6 +4792,7 @@ function loadPreviousWorkout() {
   buildSetForms();
   renderWorkoutLogs();
   renderWorkoutState();
+  alert(`${formatDisplayDate(latest.dateKey)} の前回記録を読み込みました。`);
 }
 
 function renderWorkoutEditBodyPartSelect(selected = "") {
@@ -3862,6 +5208,41 @@ function deleteExercise(part, exercise) {
   renderWorkoutSettingsList();
 }
 
+function moveBodyPart(part, offset) {
+  const masters = getWorkoutMasters();
+  const parts = Object.keys(masters);
+  const index = parts.indexOf(part);
+  const nextIndex = index + offset;
+  if (index < 0 || nextIndex < 0 || nextIndex >= parts.length) return;
+  const [moved] = parts.splice(index, 1);
+  parts.splice(nextIndex, 0, moved);
+  const reordered = {};
+  parts.forEach(name => {
+    reordered[name] = masters[name];
+  });
+  saveWorkoutMasters(reordered);
+  renderWorkoutBodyPartSelect(part);
+  renderStatsBodyPartSelect(part);
+  renderSettingsBodyPartSelect(part);
+  renderWorkoutSettingsList();
+}
+
+function moveExercise(part, exercise, offset) {
+  const masters = getWorkoutMasters();
+  const items = [...(masters[part] || [])];
+  const index = items.indexOf(exercise);
+  const nextIndex = index + offset;
+  if (index < 0 || nextIndex < 0 || nextIndex >= items.length) return;
+  const [moved] = items.splice(index, 1);
+  items.splice(nextIndex, 0, moved);
+  masters[part] = items;
+  saveWorkoutMasters(masters);
+  renderWorkoutBodyPartSelect(part);
+  renderStatsBodyPartSelect(part);
+  renderSettingsBodyPartSelect(part);
+  renderWorkoutSettingsList();
+}
+
 function renderWorkoutSettingsList() {
   const masters = getWorkoutMasters();
   const parts = Object.keys(masters);
@@ -3874,13 +5255,21 @@ function renderWorkoutSettingsList() {
     <article class="setting-item" data-body-part="${escapeAttr(part)}">
       <div class="setting-item-top workout-setting-head">
         <div class="setting-item-title">${escapeHtml(part)}</div>
-        <button class="x-btn bodypart-x-btn" type="button" data-delete-bodypart aria-label="部位を削除">×</button>
+        <div class="setting-item-actions">
+          <button class="order-btn" type="button" data-move-bodypart="-1" aria-label="上へ移動">↑</button>
+          <button class="order-btn" type="button" data-move-bodypart="1" aria-label="下へ移動">↓</button>
+          <button class="x-btn bodypart-x-btn" type="button" data-delete-bodypart aria-label="部位を削除">×</button>
+        </div>
       </div>
       <div class="menu-list-wrap">
         ${(masters[part] || []).map(ex => `
           <div class="menu-line" data-exercise="${escapeAttr(ex)}">
             <span class="menu-line-text">${escapeHtml(ex)}</span>
-            <button class="x-btn" type="button" data-delete-exercise aria-label="メニューを削除">×</button>
+            <div class="menu-line-actions">
+              <button class="order-btn" type="button" data-move-exercise="-1" aria-label="上へ移動">↑</button>
+              <button class="order-btn" type="button" data-move-exercise="1" aria-label="下へ移動">↓</button>
+              <button class="x-btn" type="button" data-delete-exercise aria-label="メニューを削除">×</button>
+            </div>
           </div>
         `).join("") || `<p class="empty-text">メニューがありません。</p>`}
       </div>
@@ -3894,12 +5283,19 @@ function renderWorkoutSettingsList() {
   workoutSettingsList.querySelectorAll("[data-body-part]").forEach(card => {
     const part = card.dataset.bodyPart;
     card.querySelector("[data-delete-bodypart]").addEventListener("click", () => deleteBodyPart(part));
+    card.querySelectorAll("[data-move-bodypart]").forEach(button => {
+      button.addEventListener("click", () => moveBodyPart(part, Number(button.dataset.moveBodypart)));
+    });
     card.querySelector("[data-add-exercise-for-part]").addEventListener("click", () => {
       addExerciseToPart(part, card.querySelector("[data-new-exercise-for-part]"));
     });
     card.querySelectorAll("[data-delete-exercise]").forEach(button => {
       const row = button.closest("[data-exercise]");
       button.addEventListener("click", () => deleteExercise(part, row.dataset.exercise));
+    });
+    card.querySelectorAll("[data-move-exercise]").forEach(button => {
+      const row = button.closest("[data-exercise]");
+      button.addEventListener("click", () => moveExercise(part, row.dataset.exercise, Number(button.dataset.moveExercise)));
     });
   });
 }
@@ -3909,26 +5305,38 @@ function addExercise() {
   newExerciseInput.value = "";
 }
 
-function renderThemeSettings() {
-  if (!themePresetList) return;
-  const currentThemeId = getThemeSettings().themeId;
-  themePresetList.innerHTML = THEME_PRESETS.map(theme => `
-    <button class="theme-preset-btn ${theme.id === currentThemeId ? "active" : ""}" type="button" data-theme-id="${escapeAttr(theme.id)}">
-      <span class="theme-swatch-row">
-        ${theme.colors.map(color => `<i style="background:${escapeAttr(color)}"></i>`).join("")}
-      </span>
-      <strong>${escapeHtml(theme.name)}</strong>
-      <small>${escapeHtml(theme.note)}</small>
-      <span class="theme-scope-row">
-        <span>背景</span>
-        <span>カレンダー</span>
-        <span>筋トレ</span>
-      </span>
+function resolveThemeSelectionThemeId(index, saveKey, presets = CONTENT_THEME_PRESETS) {
+  return presets[index]?.id || presets[0]?.id || SITE_THEME_PRESETS[0].id;
+}
+
+function isThemeButtonActive(index, currentThemeId, saveKey, presets = CONTENT_THEME_PRESETS) {
+  const selectedThemeId = resolveThemeSelectionThemeId(index, saveKey, presets);
+  return currentThemeId === selectedThemeId;
+}
+
+function renderThemePresetButtons(container, currentThemeId, labels, saveKey, previewType, presets = CONTENT_THEME_PRESETS) {
+  if (!container) return;
+  container.innerHTML = presets.map((theme, index) => {
+    const resolvedPreviewType = previewType === "site" ? "site" : previewType;
+    const selectedThemeId = resolveThemeSelectionThemeId(index, saveKey, presets);
+    return `
+    <button class="theme-preset-btn ${isThemeButtonActive(index, currentThemeId, saveKey, presets) ? "active" : ""}" type="button" title="${escapeAttr(theme.name)}" aria-label="${escapeAttr(theme.name)}" data-theme-id="${escapeAttr(selectedThemeId)}" data-theme-key="${escapeAttr(saveKey)}">
+      ${buildThemePreviewMarkup(theme, resolvedPreviewType)}
     </button>
-  `).join("");
-  themePresetList.querySelectorAll("[data-theme-id]").forEach(button => {
-    button.addEventListener("click", () => saveThemeSettings(button.dataset.themeId));
+  `;
+  }).join("");
+  container.querySelectorAll("[data-theme-id]").forEach(button => {
+    button.addEventListener("click", () => {
+      saveThemeSettings({ [button.dataset.themeKey]: button.dataset.themeId });
+    });
   });
+}
+
+function renderThemeSettings() {
+  const { siteThemeId, calendarThemeId, workoutThemeId } = getThemeSettings();
+  renderThemePresetButtons(siteThemePresetList, siteThemeId, [], "siteThemeId", "site", SITE_THEME_PRESETS);
+  renderThemePresetButtons(calendarThemePresetList, calendarThemeId, [], "calendarThemeId", "calendar", CONTENT_THEME_PRESETS);
+  renderThemePresetButtons(workoutThemePresetList, workoutThemeId, [], "workoutThemeId", "workout", CONTENT_THEME_PRESETS);
 }
 
 function showSettingsSection(sectionName) {
@@ -3936,10 +5344,12 @@ function showSettingsSection(sectionName) {
   workoutSettingsSection.classList.toggle("hidden", sectionName !== "workout");
   themeSettingsSection.classList.toggle("hidden", sectionName !== "theme");
   transferSettingsSection.classList.toggle("hidden", sectionName !== "transfer");
+  passwordSettingsSection.classList.toggle("hidden", sectionName !== "password");
   showCalendarSettingsBtn.classList.toggle("active-tab", sectionName === "calendar");
   showWorkoutSettingsBtn.classList.toggle("active-tab", sectionName === "workout");
   showThemeSettingsBtn.classList.toggle("active-tab", sectionName === "theme");
   showTransferSettingsBtn.classList.toggle("active-tab", sectionName === "transfer");
+  showPasswordSettingsBtn.classList.toggle("active-tab", sectionName === "password");
 }
 
 function showCalendarSettings() {
@@ -3957,6 +5367,11 @@ function showThemeSettings() {
 
 function showTransferSettings() {
   showSettingsSection("transfer");
+}
+
+function showPasswordSettings() {
+  renderPasswordSettings();
+  showSettingsSection("password");
 }
 
 function renderStatsBodyPartSelect(selected = "") {
@@ -4015,8 +5430,15 @@ function drawStats(days) {
   const data = collectWorkoutStats(days);
   const w = statsCanvas.width;
   const h = statsCanvas.height;
+  const themeStyles = getComputedStyle(document.documentElement);
+  const chartBackground = themeStyles.getPropertyValue("--workout-fill").trim() || "#ffffff";
+  const chartAxis = themeStyles.getPropertyValue("--workout-frame").trim() || "#cbd5e1";
+  const chartGrid = mixHexColors(chartAxis, chartBackground, 0.38);
+  const chartText = themeStyles.getPropertyValue("--workout-text").trim() || "#111827";
+  const chartSubtext = themeStyles.getPropertyValue("--workout-subtext").trim() || "#64748b";
+  const chartAccent = themeStyles.getPropertyValue("--workout-button-bg").trim() || "#2563eb";
   ctx.clearRect(0, 0, w, h);
-  ctx.fillStyle = "#ffffff";
+  ctx.fillStyle = chartBackground;
   ctx.fillRect(0, 0, w, h);
 
   const left = 52;
@@ -4027,7 +5449,7 @@ function drawStats(days) {
   const chartH = h - top - bottom;
   const maxValue = Math.max(...data.map(point => point.value), 1);
 
-  ctx.strokeStyle = "#cbd5e1";
+  ctx.strokeStyle = chartAxis;
   ctx.lineWidth = 1;
   ctx.beginPath();
   ctx.moveTo(left, top);
@@ -4035,14 +5457,14 @@ function drawStats(days) {
   ctx.lineTo(left + chartW, top + chartH);
   ctx.stroke();
 
-  ctx.fillStyle = "#64748b";
+  ctx.fillStyle = chartSubtext;
   ctx.font = "12px sans-serif";
   for (let i = 0; i <= 4; i++) {
     const ratio = i / 4;
     const y = top + chartH * ratio;
     const label = (maxValue * (1 - ratio)).toFixed(0);
     ctx.fillText(label, 8, y + 4);
-    ctx.strokeStyle = "#e5e7eb";
+    ctx.strokeStyle = chartGrid;
     ctx.beginPath();
     ctx.moveTo(left, y);
     ctx.lineTo(left + chartW, y);
@@ -4050,7 +5472,7 @@ function drawStats(days) {
   }
 
   const stepX = data.length > 1 ? chartW / (data.length - 1) : chartW;
-  ctx.strokeStyle = "#2563eb";
+  ctx.strokeStyle = chartAccent;
   ctx.lineWidth = 2;
   ctx.beginPath();
   data.forEach((point, index) => {
@@ -4064,17 +5486,17 @@ function drawStats(days) {
   data.forEach((point, index) => {
     const x = left + stepX * index;
     const y = top + chartH - (point.value / maxValue) * chartH;
-    ctx.fillStyle = "#2563eb";
+    ctx.fillStyle = chartAccent;
     ctx.beginPath();
     ctx.arc(x, y, 4, 0, Math.PI * 2);
     ctx.fill();
     const shouldShowDateLabel = days <= 7 || index % 5 === 0;
     if (shouldShowDateLabel) {
-      ctx.fillStyle = "#64748b";
+      ctx.fillStyle = chartSubtext;
       ctx.fillText(point.date.slice(5), x - 14, top + chartH + 20);
     }
     if (point.value > 0) {
-      ctx.fillStyle = "#111827";
+      ctx.fillStyle = chartText;
       ctx.fillText(point.value.toFixed(1), x - 14, y - 10);
     }
   });
@@ -4085,7 +5507,133 @@ function drawStats(days) {
   statsSummary.textContent = `期間: ${days === 7 ? "1週間" : "1か月"} / 最新: ${latest ? latest.value.toFixed(1) : "-"} / 最高: ${best ? best.toFixed(1) : "-"}`;
 }
 
+function updateLoginView() {
+  const loggedIn = isAuthenticated();
+  const currentUsername = getCurrentUsername();
+  document.body.classList.toggle("auth-locked", !loggedIn);
+  if (loginView) loginView.classList.toggle("hidden", loggedIn);
+  if (!loginTitle || !loginDescription || !loginSubmitBtn) return;
+
+  const isRegisterMode = authMode === "register";
+  loginTitle.textContent = isRegisterMode ? "新規登録" : "ログイン";
+  loginDescription.textContent = "";
+  loginSubmitBtn.textContent = isRegisterMode ? "登録して開始" : "ログイン";
+  loginDescription.classList.add("hidden");
+  registerNicknameWrap?.classList.toggle("hidden", !isRegisterMode);
+  registerPasswordConfirmWrap?.classList.toggle("hidden", !isRegisterMode);
+  loginAdminNote?.classList.add("hidden");
+  showLoginModeBtn?.classList.toggle("active-tab", !isRegisterMode);
+  showRegisterModeBtn?.classList.toggle("active-tab", isRegisterMode);
+  loginPasswordInput.autocomplete = isRegisterMode ? "new-password" : "current-password";
+  if (registerPasswordConfirmInput) {
+    registerPasswordConfirmInput.autocomplete = isRegisterMode ? "new-password" : "off";
+  }
+  resetPasswordFieldVisibility();
+  renderPasswordSettings();
+
+  if (!loggedIn) {
+    if (!loginNameInput.value && currentUsername) {
+      loginNameInput.value = currentUsername;
+    }
+    loginPasswordInput.value = "";
+    if (registerNicknameInput && !isRegisterMode) registerNicknameInput.value = "";
+    if (registerPasswordConfirmInput) registerPasswordConfirmInput.value = "";
+    if (!isRegisterMode) requestAnimationFrame(() => selectInputText(loginPasswordInput));
+  }
+}
+
+function changeCurrentUserPassword() {
+  const username = getCurrentUsername();
+  if (!username || isAdminUser(username)) return;
+
+  const currentPassword = String(currentPasswordInput?.value || "");
+  const nextPassword = String(newPasswordInput?.value || "");
+  const confirmPassword = String(confirmNewPasswordInput?.value || "");
+  if (!currentPassword || !nextPassword || !confirmPassword) {
+    alert("現在のパスワードと新しいパスワードをすべて入力してください。");
+    return;
+  }
+
+  const accounts = getUserAccounts();
+  const account = accounts[username];
+  if (!account || String(account.password || "") !== currentPassword) {
+    alert("現在のパスワードが違います。");
+    currentPasswordInput?.focus();
+    return;
+  }
+  if (nextPassword !== confirmPassword) {
+    alert("新しいパスワードが一致しません。");
+    confirmNewPasswordInput?.focus();
+    return;
+  }
+
+  accounts[username] = {
+    ...account,
+    password: nextPassword
+  };
+  saveUserAccounts(accounts);
+  clearPasswordSettingsForm();
+  alert("パスワードを変更しました。");
+}
+
+function submitLogin() {
+  const username = normalizeUsername(loginNameInput.value);
+  const nickname = normalizeNickname(registerNicknameInput?.value, username);
+  const password = String(loginPasswordInput.value || "");
+  const passwordConfirm = String(registerPasswordConfirmInput?.value || "");
+
+  if (!username || !password) {
+    alert("ユーザー名とパスワードを入力してください。");
+    return;
+  }
+
+  const accounts = getUserAccounts();
+  if (authMode === "register") {
+    if (accounts[username]) {
+      alert("そのユーザー名はすでに使われています。");
+      loginNameInput.focus();
+      return;
+    }
+    if (password !== passwordConfirm) {
+      alert("確認用パスワードが一致しません。");
+      registerPasswordConfirmInput?.focus();
+      return;
+    }
+    accounts[username] = createStoredUser(username, password, Date.now(), nickname);
+    saveUserAccounts(accounts);
+    initializeUserDataStorage(username);
+    setAuthenticated(true, username);
+    refreshUserScopedUi();
+    switchView(isAdminUser(username) ? "workout" : "calendar");
+    return;
+  }
+
+  const account = accounts[username];
+  if (!account || String(account.password || "") !== password) {
+    alert("ユーザー名かパスワードが違います。");
+    loginPasswordInput.value = "";
+    selectInputText(loginPasswordInput);
+    return;
+  }
+
+  initializeUserDataStorage(username);
+  setAuthenticated(true, username);
+  refreshUserScopedUi();
+  switchView(isAdminUser(username) ? "workout" : "calendar");
+}
+
 function bindEvents() {
+  loginSubmitBtn.addEventListener("click", submitLogin);
+  showLoginModeBtn?.addEventListener("click", () => setAuthMode("login"));
+  showRegisterModeBtn?.addEventListener("click", () => setAuthMode("register"));
+  toggleLoginPasswordBtn?.addEventListener("click", () => togglePasswordFieldVisibility(loginPasswordInput, toggleLoginPasswordBtn));
+  toggleRegisterPasswordConfirmBtn?.addEventListener("click", () => togglePasswordFieldVisibility(registerPasswordConfirmInput, toggleRegisterPasswordConfirmBtn));
+  [loginNameInput, registerNicknameInput, loginPasswordInput, registerPasswordConfirmInput].filter(Boolean).forEach(input => {
+    input.addEventListener("keydown", event => {
+      if (event.key === "Enter") submitLogin();
+    });
+  });
+
   goCalendarBtnHeader.addEventListener("click", () => switchView("calendar"));
   goWorkoutBtnHeader.addEventListener("click", () => switchView("workout"));
   goSettingsBtnHeader.addEventListener("click", () => switchView("settings"));
@@ -4240,16 +5788,27 @@ function bindEvents() {
   showWorkoutSettingsBtn.addEventListener("click", showWorkoutSettings);
   showThemeSettingsBtn.addEventListener("click", showThemeSettings);
   showTransferSettingsBtn.addEventListener("click", showTransferSettings);
+  showPasswordSettingsBtn?.addEventListener("click", showPasswordSettings);
+  logoutBtn.addEventListener("click", logoutUser);
+  adminViewUserSelect?.addEventListener("change", () => setAdminViewUser(adminViewUserSelect.value));
+  toggleCurrentPasswordBtn?.addEventListener("click", () => togglePasswordFieldVisibility(currentPasswordInput, toggleCurrentPasswordBtn));
+  toggleNewPasswordBtn?.addEventListener("click", () => togglePasswordFieldVisibility(newPasswordInput, toggleNewPasswordBtn));
+  toggleConfirmNewPasswordBtn?.addEventListener("click", () => togglePasswordFieldVisibility(confirmNewPasswordInput, toggleConfirmNewPasswordBtn));
+  saveUserNicknameBtn?.addEventListener("click", saveCurrentUserNickname);
+  changePasswordBtn?.addEventListener("click", changeCurrentUserPassword);
   exportCsvBtn.addEventListener("click", exportSelectedCsv);
   exportZipBtn.addEventListener("click", () => {
     if (dataTransferTypeSelect.value !== "calendar") {
-      alert("ZIPエクスポートは写真付きカレンダー記録用です。対象をカレンダーにしてください。");
+      alert("ZIPエクスポートは写真付き予定記録用です。対象を予定にしてください。");
       return;
     }
     exportCalendarZip();
   });
   importCsvBtn.addEventListener("click", () => importCsvInput.click());
   importCsvInput.addEventListener("change", () => importSelectedCsv(importCsvInput.files?.[0]));
+  resetCalendarDataBtn.addEventListener("click", () => confirmAndResetData("calendar"));
+  resetWorkoutDataBtn.addEventListener("click", () => confirmAndResetData("workout"));
+  resetAllDataBtn.addEventListener("click", () => confirmAndResetData("all"));
 
   statsBodyPartSelect.addEventListener("change", () => {
     renderStatsExerciseSelect();
@@ -4286,9 +5845,11 @@ function init() {
   initNumericInputAssist();
   bindEvents();
   switchView("calendar");
+  updateLoginView();
 }
 
 window.deleteSchedule = deleteSchedule;
 window.deleteWorkoutSession = deleteWorkoutSession;
 
 init();
+
