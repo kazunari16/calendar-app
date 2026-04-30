@@ -2469,6 +2469,18 @@ function goWorkoutToday() {
   setWorkoutDate(formatDateKey(new Date()));
 }
 
+function openScheduleInputForDate(dateKey) {
+  if (!dateKey) return;
+  setSelectedDate(dateKey);
+  openScheduleCreate();
+}
+
+function openWorkoutInputForDate(dateKey) {
+  if (!dateKey) return;
+  setWorkoutDate(dateKey);
+  switchView("workoutInput");
+}
+
 function renderCalendar() {
   monthLabel.textContent = `${currentYear}年${currentMonth + 1}月`;
   const schedules = getVisibleSchedules();
@@ -2494,7 +2506,18 @@ function renderCalendar() {
   }).join("");
 
   calendarGrid.querySelectorAll("[data-date]").forEach(button => {
-    button.addEventListener("click", () => setSelectedDate(button.dataset.date));
+    button.addEventListener("click", () => {
+      const dateKey = button.dataset.date;
+      if (dateKey === selectedDate) {
+        openScheduleInputForDate(dateKey);
+        return;
+      }
+      setSelectedDate(dateKey);
+    });
+    button.addEventListener("dblclick", event => {
+      event.preventDefault();
+      openScheduleInputForDate(button.dataset.date);
+    });
   });
 }
 
@@ -2524,11 +2547,20 @@ function renderMiniCalendar() {
 
   miniCalendarGrid.querySelectorAll("[data-date]").forEach(button => {
     button.addEventListener("click", () => {
-      selectedDate = button.dataset.date;
+      const dateKey = button.dataset.date;
+      if (dateKey === selectedDate) {
+        openScheduleInputForDate(dateKey);
+        return;
+      }
+      selectedDate = dateKey;
       setDefaultDateTimes();
       renderMiniCalendar();
       renderCalendar();
       renderScheduleList();
+    });
+    button.addEventListener("dblclick", event => {
+      event.preventDefault();
+      openScheduleInputForDate(button.dataset.date);
     });
   });
 }
@@ -3558,7 +3590,18 @@ function renderWorkoutMiniCalendar() {
   }).join("");
 
   workoutMiniCalendarGrid.querySelectorAll("[data-date]").forEach(button => {
-    button.addEventListener("click", () => setWorkoutDate(button.dataset.date));
+    button.addEventListener("click", () => {
+      const dateKey = button.dataset.date;
+      if (dateKey === selectedDate) {
+        openWorkoutInputForDate(dateKey);
+        return;
+      }
+      setWorkoutDate(dateKey);
+    });
+    button.addEventListener("dblclick", event => {
+      event.preventDefault();
+      openWorkoutInputForDate(button.dataset.date);
+    });
   });
 }
 
@@ -4455,7 +4498,9 @@ function getWorkoutMonthItemsForUsername(username, year = workoutMiniYear, month
 }
 
 function getAllWorkoutMonthItemsForUsers(year = workoutMiniYear, month = workoutMiniMonth) {
-  return Object.keys(getUserAccounts()).flatMap(username => getWorkoutMonthItemsForUsername(username, year, month));
+  return Object.keys(getUserAccounts())
+    .filter(username => !isAdminUser(username))
+    .flatMap(username => getWorkoutMonthItemsForUsername(username, year, month));
 }
 
 function getWorkoutItemWorkSeconds(item) {

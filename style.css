@@ -1993,17 +1993,17 @@ body {
 }
 
 .record-mode .view.active .card {
-  padding-top: 86px;
+  padding-top: 80px;
 }
 
 .record-mode .view.active .top-row {
   position: fixed;
-  top: calc(env(safe-area-inset-top, 0) + 86px);
+  top: calc(env(safe-area-inset-top, 0) + 72px);
   left: max(8px, calc((100vw - 1040px) / 2 + 14px));
   right: max(8px, calc((100vw - 1040px) / 2 + 14px));
-  z-index: 80;
+  z-index: 125;
   margin: 0;
-  padding: 14px;
+  padding: 10px 14px;
   border-radius: 0 0 12px 12px;
   border-bottom: 1px solid var(--line);
   background: #ffffff;
@@ -2921,7 +2921,7 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
   }
 
   .record-mode .view.active .top-row {
-    top: calc(env(safe-area-inset-top, 0) + 126px);
+    top: calc(env(safe-area-inset-top, 0) + 112px);
   }
 
   .header-actions {
@@ -3201,22 +3201,42 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
 .cardio-grid,
 .edit-cardio-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
+  grid-template-columns: 1fr;
+  gap: 8px;
 }
 
 .cardio-field,
+.edit-cardio-grid .edit-field,
+.cardio-memo-field,
 .edit-cardio-memo {
   display: grid;
-  gap: 6px;
+  grid-template-columns: 64px minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
   min-width: 0;
 }
 
+.cardio-form-card input:not([type="checkbox"]),
+.cardio-form-card .metric-number-input,
+.cardio-form-card .unit-input-wrap input,
+.edit-cardio-card input:not([type="checkbox"]),
+.edit-cardio-card .metric-number-input,
+.edit-cardio-card .unit-input-wrap input {
+  min-height: 36px;
+  height: 36px;
+  padding: 0 10px;
+  font-size: 14px;
+  font-weight: 800;
+}
+
 .cardio-field span,
-.edit-cardio-head span {
-  color: #f8fafc;
-  font-size: 13px;
-  font-weight: 900;
+.edit-cardio-head span,
+.edit-cardio-grid .edit-field > span,
+.edit-cardio-memo > span {
+  color: var(--workout-text);
+  font-size: 12px;
+  font-weight: 800;
+  white-space: nowrap;
 }
 
 .unit-input-wrap {
@@ -3228,15 +3248,15 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
 }
 
 .unit-input-wrap em {
-  color: #f8fafc;
+  color: var(--workout-text);
   font-style: normal;
-  font-size: 13px;
-  font-weight: 900;
+  font-size: 12px;
+  font-weight: 800;
   white-space: nowrap;
 }
 
 .cardio-memo-field {
-  margin-top: 10px;
+  margin-top: 2px;
 }
 
 .cardio-save-btn {
@@ -3252,7 +3272,18 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
 }
 
 .edit-cardio-memo {
-  margin-top: 10px;
+  margin-top: 2px;
+}
+
+.cardio-field > input,
+.cardio-field > .unit-input-wrap,
+.cardio-field > textarea,
+.edit-cardio-grid .edit-field > input,
+.edit-cardio-grid .edit-field > .unit-input-wrap,
+.edit-cardio-grid .edit-field > textarea,
+.edit-cardio-memo > input,
+.edit-cardio-memo > textarea {
+  grid-column: 2;
 }
 
 .edit-workout-btn {
@@ -4278,11 +4309,14 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
 #view-workout-input .workout-entry-label,
 #view-workout-input .workout-entry-side-label,
 #view-workout-input .workout-record-field span,
+#view-workout-input .cardio-field span,
+#view-workout-input .cardio-form-head span,
 #view-workout-input .set-memo-label,
 #view-workout-input .target-date-label,
 #view-workout-edit .section-title,
 #view-workout-edit .form-group label,
 #view-workout-edit .edit-field span,
+#view-workout-edit .edit-cardio-head span,
 #view-workout-edit .set-memo-label,
 #view-workout-stats .section-title,
 #view-workout-stats .form-group label {
