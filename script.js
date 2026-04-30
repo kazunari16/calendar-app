@@ -497,6 +497,8 @@ const appViewTitle = $("appViewTitle");
 const goCalendarBtnHeader = $("goCalendarBtnHeader");
 const goWorkoutBtnHeader = $("goWorkoutBtnHeader");
 const goSettingsBtnHeader = $("goSettingsBtnHeader");
+const appHeader = document.querySelector(".app-header");
+const headerActionsWrap = document.querySelector(".header-actions");
 
 const monthLabel = $("monthLabel");
 const calendarGrid = $("calendarGrid");
@@ -2403,6 +2405,60 @@ function scrollToPageTop() {
   requestAnimationFrame(() => window.scrollTo({ top: 0, left: 0, behavior: "auto" }));
 }
 
+function syncRecordTopRowOffset() {
+  if (!appHeader) return;
+  const headerRect = appHeader.getBoundingClientRect();
+  const headerHeight = Math.max(0, Math.round(appHeader.offsetHeight || headerRect.height || 0));
+  const actionsRect = headerActionsWrap?.getBoundingClientRect();
+  const actionsVisible = !!headerActionsWrap
+    && headerActionsWrap.offsetParent !== null
+    && !!actionsRect
+    && actionsRect.height > 0
+    && actionsRect.bottom > 0
+    && actionsRect.top < window.innerHeight;
+  document.body.classList.toggle("header-actions-hidden", !actionsVisible);
+  const compactOffset = Math.max(52, Math.round(headerHeight - (headerActionsWrap?.offsetHeight || 0) + 8));
+  const regularOffset = Math.max(64, Math.round(headerHeight + 8));
+  const offset = actionsVisible ? regularOffset : compactOffset;
+  document.documentElement.style.setProperty("--record-top-offset", `${offset}px`);
+}
+
+function bindCalendarCellInteractions(button, dateKey, onSelect, onActivate) {
+  let pressTimer = 0;
+  let longPressed = false;
+  const clearPressTimer = () => {
+    if (pressTimer) {
+      clearTimeout(pressTimer);
+      pressTimer = 0;
+    }
+  };
+  button.addEventListener("pointerdown", event => {
+    if (event.pointerType && event.pointerType !== "touch") return;
+    longPressed = false;
+    clearPressTimer();
+    pressTimer = window.setTimeout(() => {
+      longPressed = true;
+      onActivate(dateKey);
+    }, 450);
+  });
+  ["pointerup", "pointercancel", "pointerleave", "pointermove"].forEach(eventName => {
+    button.addEventListener(eventName, clearPressTimer);
+  });
+  button.addEventListener("click", event => {
+    if (longPressed) {
+      event.preventDefault();
+      event.stopPropagation();
+      longPressed = false;
+      return;
+    }
+    onSelect(dateKey);
+  });
+  button.addEventListener("dblclick", event => {
+    event.preventDefault();
+    onActivate(dateKey);
+  });
+}
+
 function switchView(viewName) {
   updateAppViewTitle(viewName);
   document.body.classList.toggle("record-mode", isRecordView(viewName));
@@ -2450,6 +2506,7 @@ function switchView(viewName) {
     showCalendarSettings();
   }
 
+  syncRecordTopRowOffset();
   if (isRecordView(viewName)) scrollToPageTop();
 }
 
@@ -2506,18 +2563,19 @@ function renderCalendar() {
   }).join("");
 
   calendarGrid.querySelectorAll("[data-date]").forEach(button => {
-    button.addEventListener("click", () => {
-      const dateKey = button.dataset.date;
-      if (dateKey === selectedDate) {
-        openScheduleInputForDate(dateKey);
-        return;
-      }
-      setSelectedDate(dateKey);
-    });
-    button.addEventListener("dblclick", event => {
-      event.preventDefault();
-      openScheduleInputForDate(button.dataset.date);
-    });
+    const dateKey = button.dataset.date;
+    bindCalendarCellInteractions(
+      button,
+      dateKey,
+      nextDateKey => {
+        if (nextDateKey === selectedDate) {
+          openScheduleInputForDate(nextDateKey);
+          return;
+        }
+        setSelectedDate(nextDateKey);
+      },
+      openScheduleInputForDate
+    );
   });
 }
 
@@ -2546,22 +2604,23 @@ function renderMiniCalendar() {
   }).join("");
 
   miniCalendarGrid.querySelectorAll("[data-date]").forEach(button => {
-    button.addEventListener("click", () => {
-      const dateKey = button.dataset.date;
-      if (dateKey === selectedDate) {
-        openScheduleInputForDate(dateKey);
-        return;
-      }
-      selectedDate = dateKey;
-      setDefaultDateTimes();
-      renderMiniCalendar();
-      renderCalendar();
-      renderScheduleList();
-    });
-    button.addEventListener("dblclick", event => {
-      event.preventDefault();
-      openScheduleInputForDate(button.dataset.date);
-    });
+    const dateKey = button.dataset.date;
+    bindCalendarCellInteractions(
+      button,
+      dateKey,
+      nextDateKey => {
+        if (nextDateKey === selectedDate) {
+          openScheduleInputForDate(nextDateKey);
+          return;
+        }
+        selectedDate = nextDateKey;
+        setDefaultDateTimes();
+        renderMiniCalendar();
+        renderCalendar();
+        renderScheduleList();
+      },
+      openScheduleInputForDate
+    );
   });
 }
 
@@ -3590,18 +3649,19 @@ function renderWorkoutMiniCalendar() {
   }).join("");
 
   workoutMiniCalendarGrid.querySelectorAll("[data-date]").forEach(button => {
-    button.addEventListener("click", () => {
-      const dateKey = button.dataset.date;
-      if (dateKey === selectedDate) {
-        openWorkoutInputForDate(dateKey);
-        return;
-      }
-      setWorkoutDate(dateKey);
-    });
-    button.addEventListener("dblclick", event => {
-      event.preventDefault();
-      openWorkoutInputForDate(button.dataset.date);
-    });
+    const dateKey = button.dataset.date;
+    bindCalendarCellInteractions(
+      button,
+      dateKey,
+      nextDateKey => {
+        if (nextDateKey === selectedDate) {
+          openWorkoutInputForDate(nextDateKey);
+          return;
+        }
+        setWorkoutDate(nextDateKey);
+      },
+      openWorkoutInputForDate
+    );
   });
 }
 
@@ -5891,6 +5951,14 @@ function init() {
   bindEvents();
   switchView("calendar");
   updateLoginView();
+  syncRecordTopRowOffset();
+  window.addEventListener("resize", syncRecordTopRowOffset, { passive: true });
+  window.addEventListener("scroll", syncRecordTopRowOffset, { passive: true });
+  if (window.ResizeObserver) {
+    const observer = new ResizeObserver(() => syncRecordTopRowOffset());
+    if (appHeader) observer.observe(appHeader);
+    if (headerActionsWrap) observer.observe(headerActionsWrap);
+  }
 }
 
 window.deleteSchedule = deleteSchedule;

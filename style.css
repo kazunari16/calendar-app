@@ -1998,7 +1998,7 @@ body {
 
 .record-mode .view.active .top-row {
   position: fixed;
-  top: calc(env(safe-area-inset-top, 0) + 72px);
+  top: calc(env(safe-area-inset-top, 0) + var(--record-top-offset, 72px));
   left: max(8px, calc((100vw - 1040px) / 2 + 14px));
   right: max(8px, calc((100vw - 1040px) / 2 + 14px));
   z-index: 125;
@@ -2921,7 +2921,7 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
   }
 
   .record-mode .view.active .top-row {
-    top: calc(env(safe-area-inset-top, 0) + 112px);
+    top: calc(env(safe-area-inset-top, 0) + var(--record-top-offset, 112px));
   }
 
   .header-actions {
