@@ -2052,6 +2052,17 @@ body {
   padding-top: calc(var(--record-top-offset, 72px) + 64px);
 }
 
+.record-mode .app-header {
+  margin-bottom: 0;
+  padding: 0;
+  min-height: 0;
+}
+
+.record-mode .app-header h1,
+.record-mode .header-actions {
+  display: none !important;
+}
+
 .record-mode .view.active .top-row {
   position: fixed;
   top: var(--record-top-offset, 72px);
