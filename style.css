@@ -771,6 +771,15 @@ textarea {
   font-weight: 700;
 }
 
+.timer-set-summary {
+  margin-top: 10px;
+  font-size: 12px;
+  line-height: 1.35;
+  color: var(--text);
+  font-weight: 700;
+  word-break: break-word;
+}
+
 .stats-btn-row,
 .workout-btn-row {
   display: grid;
@@ -1373,10 +1382,19 @@ canvas {
   gap: 4px;
 }
 
+#view-workout-input .set-inline-field-compact {
+  grid-template-columns: 54px minmax(0, 1fr) 24px;
+}
+
 .field-label-with-copy {
   display: inline-flex;
   align-items: center;
   gap: 4px;
+}
+
+#view-workout-input .set-inline-field-compact > .field-label-with-copy,
+#view-workout-input .set-memo-label {
+  min-width: 54px;
 }
 
 .copy-inline-btn {
@@ -1438,6 +1456,10 @@ canvas {
   align-items: center;
 }
 
+#view-workout-input .set-memo-row {
+  grid-template-columns: 54px minmax(0, 1fr);
+}
+
 .set-memo-label {
   font-size: 12px;
   font-weight: 700;
@@ -1460,6 +1482,12 @@ canvas {
   min-height: 30px;
   padding: 4px 7px;
   font-size: 12px;
+}
+
+#view-workout-input .set-direct-card .metric-number-input,
+#view-workout-input .set-memo-input {
+  width: 100%;
+  box-sizing: border-box;
 }
 
 #view-workout-input .set-memo-input {
@@ -1575,6 +1603,10 @@ canvas {
     gap: 4px;
   }
 
+  #view-workout-input .set-inline-field-compact {
+    grid-template-columns: 50px minmax(0, 1fr) 22px;
+  }
+
   .set-inline-field span,
   .set-inline-field em,
   .set-memo-label,
@@ -1589,6 +1621,10 @@ canvas {
 
   .set-direct-status {
     font-size: 9px;
+  }
+
+  #view-workout-input .set-memo-row {
+    grid-template-columns: 50px minmax(0, 1fr);
   }
 
   .set-assist-inline-top {
@@ -3973,6 +4009,7 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
 .calendar-planner-card .mini-nav-btn,
 .calendar-planner-card .calendar-today-btn {
   background: var(--calendar-fill-alt);
+  color: var(--calendar-text);
 }
 
 .workout-calendar-card .day-cell.other-month,
@@ -3980,6 +4017,7 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
 .workout-calendar-card .mini-nav-btn,
 .workout-calendar-card .calendar-today-btn {
   background: var(--workout-fill-alt);
+  color: var(--workout-text);
 }
 
 .calendar-planner-card .day-cell.selected {
@@ -4350,6 +4388,7 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
 
 #view-workout-input .timer-display,
 #view-workout-input .timer-sub,
+#view-workout-input .timer-set-summary,
 #view-workout-input .workout-detail-title,
 #view-workout-input .count-badge,
 #view-workout-input .empty-text,

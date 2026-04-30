@@ -554,6 +554,7 @@ const workoutMemo = $("workoutMemo");
 const workoutPhaseLabel = $("workoutPhaseLabel");
 const workoutTimerDisplay = $("workoutTimerDisplay");
 const workoutSetStatus = $("workoutSetStatus");
+const workoutTimerSetSummary = $("workoutTimerSetSummary");
 const workoutMainBtn = $("workoutMainBtn");
 const workoutResetBtn = $("workoutResetBtn");
 const loadPreviousWorkoutBtn = $("loadPreviousWorkoutBtn");
@@ -2410,16 +2411,19 @@ function syncRecordTopRowOffset() {
   const headerRect = appHeader.getBoundingClientRect();
   const headerHeight = Math.max(0, Math.round(appHeader.offsetHeight || headerRect.height || 0));
   const actionsRect = headerActionsWrap?.getBoundingClientRect();
-  const actionsVisible = !!headerActionsWrap
+  const actionsFullyVisible = !!headerActionsWrap
     && headerActionsWrap.offsetParent !== null
     && !!actionsRect
     && actionsRect.height > 0
-    && actionsRect.bottom > 0
-    && actionsRect.top < window.innerHeight;
-  document.body.classList.toggle("header-actions-hidden", !actionsVisible);
-  const compactOffset = Math.max(52, Math.round(headerHeight - (headerActionsWrap?.offsetHeight || 0) + 8));
-  const regularOffset = Math.max(64, Math.round(headerHeight + 8));
-  const offset = actionsVisible ? regularOffset : compactOffset;
+    && actionsRect.top >= Math.max(0, headerRect.top) - 1
+    && actionsRect.bottom <= Math.min(window.innerHeight, headerRect.bottom) + 1;
+  document.body.classList.toggle("header-actions-hidden", !actionsFullyVisible);
+  const headerBaseHeight = Math.max(0, headerHeight - (headerActionsWrap?.offsetHeight || 0));
+  const compactOffset = Math.max(6, Math.round(headerBaseHeight + 4));
+  const regularOffset = actionsRect
+    ? Math.max(12, Math.round(Math.min(window.innerHeight, actionsRect.bottom) + 8))
+    : Math.max(12, Math.round(headerRect.bottom + 8));
+  const offset = actionsFullyVisible ? regularOffset : compactOffset;
   document.documentElement.style.setProperty("--record-top-offset", `${offset}px`);
 }
 
@@ -4091,6 +4095,7 @@ function buildSetForms() {
     const statusText = getWorkoutSetStatusText(getWorkoutSetSnapshot(setNo));
     card.querySelector("[data-rm-display]").textContent = `RM ${rmText}`;
     card.querySelector("[data-set-status]").textContent = `(${statusText})`;
+    renderWorkoutState();
   };
 
   setFormsWrap.querySelectorAll("[data-set-form]").forEach(card => {
@@ -4122,6 +4127,7 @@ function buildSetForms() {
         const fieldName = button.dataset.copyField;
         copyWorkoutFieldFromPrevious(setNo, fieldName);
         buildSetForms();
+        renderWorkoutState();
       });
     });
     card.addEventListener("click", event => {
@@ -4147,6 +4153,7 @@ function buildSetForms() {
       workoutState.currentSet = nextCount;
     }
     buildSetForms();
+    renderWorkoutState();
   };
 
   setFormsWrap.querySelector("[data-set-count-minus]")?.addEventListener("click", () => adjustSetCount(-1));
@@ -4178,6 +4185,20 @@ function stopWorkoutTimer() {
   workoutTimerInterval = null;
 }
 
+function getWorkoutTimerSetSummaryText(setNo = getActiveWorkoutSetNo()) {
+  const snapshot = getWorkoutSetSnapshot(setNo);
+  if (!snapshot) return "-";
+  const parts = [];
+  if (Number(snapshot.weight || 0) > 0) parts.push(`${formatWeightRollValue(snapshot.weight)}kg`);
+  if (Number(snapshot.reps || 0) > 0) parts.push(`${formatRepsRollValue(snapshot.reps)}回`);
+  if (snapshot.assist) parts.push("補助");
+  const rmText = calcEstimated1RM(snapshot.weight, snapshot.reps);
+  if (rmText && rmText !== "-") parts.push(`RM ${rmText}`);
+  const summary = parts.length ? parts.join(" / ") : "未入力";
+  const memo = String(snapshot.memo || "").trim();
+  return memo ? `${summary} / ${memo}` : summary;
+}
+
 function renderWorkoutState() {
   const targetSets = getTargetSets();
   const setNo = getActiveWorkoutSetNo();
@@ -4188,6 +4209,9 @@ function renderWorkoutState() {
 
   workoutTimerDisplay.textContent = formatSeconds(elapsed);
   workoutSetStatus.textContent = `セット ${setNo} / ${targetSets}`;
+  if (workoutTimerSetSummary) {
+    workoutTimerSetSummary.textContent = getWorkoutTimerSetSummaryText(setNo);
+  }
   workoutMainBtn.disabled = false;
 
   if (workoutState.mode === "work") {
@@ -4249,10 +4273,11 @@ function workoutMainAction() {
 
   if (workoutState.mode === "idle" || workoutState.mode === "done") {
     workoutState.targetSets = targetSets;
-    workoutState.currentSet = currentSetNo;
+    workoutState.currentSet = 1;
     workoutState.mode = "work";
     workoutState.phaseStartedAt = Date.now();
     startWorkoutTimer();
+    buildSetForms();
     renderWorkoutState();
     return;
   }
