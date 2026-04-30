@@ -492,6 +492,15 @@ const registerPasswordConfirmWrap = $("registerPasswordConfirmWrap");
 const registerPasswordConfirmInput = $("registerPasswordConfirmInput");
 const toggleRegisterPasswordConfirmBtn = $("toggleRegisterPasswordConfirmBtn");
 const loginSubmitBtn = $("loginSubmitBtn");
+const showForgotPasswordBtn = $("showForgotPasswordBtn");
+const forgotPasswordWrap = $("forgotPasswordWrap");
+const forgotPasswordUsernameInput = $("forgotPasswordUsernameInput");
+const forgotPasswordNicknameInput = $("forgotPasswordNicknameInput");
+const forgotNewPasswordInput = $("forgotNewPasswordInput");
+const toggleForgotNewPasswordBtn = $("toggleForgotNewPasswordBtn");
+const forgotConfirmPasswordInput = $("forgotConfirmPasswordInput");
+const toggleForgotConfirmPasswordBtn = $("toggleForgotConfirmPasswordBtn");
+const resetForgotPasswordBtn = $("resetForgotPasswordBtn");
 
 const appViewTitle = $("appViewTitle");
 const goCalendarBtnHeader = $("goCalendarBtnHeader");
@@ -615,6 +624,16 @@ if (showCalendarSettingsBtn) showCalendarSettingsBtn.textContent = "予定";
 if (showPasswordSettingsBtn) showPasswordSettingsBtn.textContent = "ユーザー";
 if (calendarSettingsSectionHeading) calendarSettingsSectionHeading.textContent = "予定設定";
 if (calendarThemeHeading) calendarThemeHeading.textContent = "予定のテーマ";
+const settingsTabsWrap = document.querySelector(".settings-tabs");
+if (settingsTabsWrap) {
+  [
+    showCalendarSettingsBtn,
+    showWorkoutSettingsBtn,
+    showThemeSettingsBtn,
+    showPasswordSettingsBtn,
+    showTransferSettingsBtn
+  ].filter(Boolean).forEach(button => settingsTabsWrap.appendChild(button));
+}
 const toggleCurrentPasswordBtn = $("toggleCurrentPasswordBtn");
 const toggleNewPasswordBtn = $("toggleNewPasswordBtn");
 const toggleConfirmNewPasswordBtn = $("toggleConfirmNewPasswordBtn");
@@ -949,9 +968,43 @@ function togglePasswordFieldVisibility(input, button) {
 function resetPasswordFieldVisibility() {
   setPasswordFieldVisibility(loginPasswordInput, toggleLoginPasswordBtn, false);
   setPasswordFieldVisibility(registerPasswordConfirmInput, toggleRegisterPasswordConfirmBtn, false);
+  setPasswordFieldVisibility(forgotNewPasswordInput, toggleForgotNewPasswordBtn, false);
+  setPasswordFieldVisibility(forgotConfirmPasswordInput, toggleForgotConfirmPasswordBtn, false);
   setPasswordFieldVisibility(currentPasswordInput, toggleCurrentPasswordBtn, false);
   setPasswordFieldVisibility(newPasswordInput, toggleNewPasswordBtn, false);
   setPasswordFieldVisibility(confirmNewPasswordInput, toggleConfirmNewPasswordBtn, false);
+}
+
+function clearForgotPasswordForm(resetUsername = false) {
+  if (resetUsername && forgotPasswordUsernameInput) forgotPasswordUsernameInput.value = "";
+  if (forgotPasswordNicknameInput) forgotPasswordNicknameInput.value = "";
+  if (forgotNewPasswordInput) forgotNewPasswordInput.value = "";
+  if (forgotConfirmPasswordInput) forgotConfirmPasswordInput.value = "";
+  setPasswordFieldVisibility(forgotNewPasswordInput, toggleForgotNewPasswordBtn, false);
+  setPasswordFieldVisibility(forgotConfirmPasswordInput, toggleForgotConfirmPasswordBtn, false);
+}
+
+function setForgotPasswordMode(visible) {
+  const nextVisible = !!visible;
+  forgotPasswordWrap?.classList.toggle("hidden", !nextVisible);
+  showForgotPasswordBtn?.classList.toggle("active-tab", nextVisible);
+  if (showForgotPasswordBtn) {
+    showForgotPasswordBtn.textContent = nextVisible ? "再設定を閉じる" : "パスワードを忘れた場合";
+  }
+  if (nextVisible) {
+    if (forgotPasswordUsernameInput && !forgotPasswordUsernameInput.value) {
+      forgotPasswordUsernameInput.value = normalizeUsername(loginNameInput?.value || "");
+    }
+    requestAnimationFrame(() => {
+      if (forgotPasswordUsernameInput?.value) {
+        forgotPasswordNicknameInput?.focus();
+      } else {
+        forgotPasswordUsernameInput?.focus();
+      }
+    });
+  } else {
+    clearForgotPasswordForm(false);
+  }
 }
 
 function clearPasswordSettingsForm() {
@@ -1705,7 +1758,7 @@ function applyThemeSettings() {
   const workoutSurface = deriveContentThemeSurface(workoutTheme.vars);
   const appHeaderText = getReadableTextColor(siteTheme.vars["--card"], "#111827", "#f8fafc");
   const topCalendarText = getReadableTextColor(siteTheme.vars["--primary-light"], "#111827", "#f8fafc");
-  const topWorkoutText = getReadableTextColor(siteTheme.vars["--primary"], "#111827", "#f8fafc");
+  const topWorkoutText = getReadableTextColor(siteTheme.vars["--primary-light"], "#111827", "#f8fafc");
   const topSettingsText = getReadableTextColor(siteTheme.vars["--card"], "#111827", "#f8fafc");
   const settingsText = getReadableTextColor(siteTheme.vars["--card"], "#111827", "#f8fafc");
   const loginInputText = getReadableTextColor(siteTheme.vars["--card"], "#111827", "#f8fafc");
@@ -1735,7 +1788,7 @@ function applyThemeSettings() {
     "--app-header-text": appHeaderText,
     "--top-calendar-bg": siteTheme.vars["--primary-light"],
     "--top-calendar-text": topCalendarText,
-    "--top-workout-bg": siteTheme.vars["--primary"],
+    "--top-workout-bg": siteTheme.vars["--primary-light"],
     "--top-workout-text": topWorkoutText,
     "--top-settings-bg": siteTheme.vars["--card"],
     "--top-settings-text": topSettingsText,
@@ -2418,11 +2471,11 @@ function syncRecordTopRowOffset() {
     && actionsRect.top >= Math.max(0, headerRect.top) - 1
     && actionsRect.bottom <= Math.min(window.innerHeight, headerRect.bottom) + 1;
   document.body.classList.toggle("header-actions-hidden", !actionsFullyVisible);
-  const headerBaseHeight = Math.max(0, headerHeight - (headerActionsWrap?.offsetHeight || 0));
-  const compactOffset = Math.max(6, Math.round(headerBaseHeight + 4));
+  const safeTop = Math.max(0, Math.round(window.visualViewport?.offsetTop || 0));
+  const compactOffset = Math.max(safeTop, 0);
   const regularOffset = actionsRect
-    ? Math.max(12, Math.round(Math.min(window.innerHeight, actionsRect.bottom) + 8))
-    : Math.max(12, Math.round(headerRect.bottom + 8));
+    ? Math.max(safeTop + 12, Math.round(Math.min(window.innerHeight, actionsRect.bottom) + 8))
+    : Math.max(safeTop + 12, Math.round(headerRect.bottom + 8));
   const offset = actionsFullyVisible ? regularOffset : compactOffset;
   document.documentElement.style.setProperty("--record-top-offset", `${offset}px`);
 }
@@ -4202,15 +4255,16 @@ function getWorkoutTimerSetSummaryText(setNo = getActiveWorkoutSetNo()) {
 function renderWorkoutState() {
   const targetSets = getTargetSets();
   const setNo = getActiveWorkoutSetNo();
+  const displaySetNo = workoutState.mode === "rest" ? Math.max(1, setNo - 1) : setNo;
   let elapsed = 0;
   if (workoutState.phaseStartedAt) {
     elapsed = Math.round((Date.now() - workoutState.phaseStartedAt) / 1000);
   }
 
   workoutTimerDisplay.textContent = formatSeconds(elapsed);
-  workoutSetStatus.textContent = `セット ${setNo} / ${targetSets}`;
+  workoutSetStatus.textContent = `セット ${displaySetNo} / ${targetSets}`;
   if (workoutTimerSetSummary) {
-    workoutTimerSetSummary.textContent = getWorkoutTimerSetSummaryText(setNo);
+    workoutTimerSetSummary.textContent = getWorkoutTimerSetSummaryText(displaySetNo);
   }
   workoutMainBtn.disabled = false;
 
@@ -4271,9 +4325,11 @@ function workoutMainAction() {
     return;
   }
 
-  if (workoutState.mode === "idle" || workoutState.mode === "done") {
+  if (workoutState.mode === "idle" || workoutState.mode === "done" || workoutState.mode === "ready") {
     workoutState.targetSets = targetSets;
-    workoutState.currentSet = 1;
+    if (workoutState.mode === "idle" || workoutState.mode === "done") {
+      workoutState.currentSet = 1;
+    }
     workoutState.mode = "work";
     workoutState.phaseStartedAt = Date.now();
     startWorkoutTimer();
@@ -4308,9 +4364,16 @@ function workoutMainAction() {
       assist: typeof nextDraft.assist === "boolean" ? nextDraft.assist : setData.assist
     };
     workoutState.currentSet = nextSet;
-    workoutState.mode = "rest";
-    workoutState.phaseStartedAt = Date.now();
-    startWorkoutTimer();
+    const restTarget = Math.max(0, Number(setData.restSec || 0));
+    if (restTarget > 0) {
+      workoutState.mode = "rest";
+      workoutState.phaseStartedAt = Date.now();
+      startWorkoutTimer();
+    } else {
+      workoutState.mode = "ready";
+      workoutState.phaseStartedAt = null;
+      stopWorkoutTimer();
+    }
     renderWorkoutLogs();
     buildSetForms();
     renderWorkoutState();
@@ -4319,7 +4382,7 @@ function workoutMainAction() {
 
   if (workoutState.mode === "rest") {
     const previousSetNo = Math.max(1, currentSetNo - 1);
-    const restSec = Math.max(1, Math.round((Date.now() - workoutState.phaseStartedAt) / 1000));
+    const restSec = Math.max(0, Math.round((Date.now() - workoutState.phaseStartedAt) / 1000));
     const previous = workoutState.setLogs.find(item => Number(item.setNo) === previousSetNo);
     if (previous) previous.restSec = restSec;
 
@@ -5046,35 +5109,35 @@ function renderWorkoutEditCardioForm(preset = null) {
         <label class="edit-field">
           <span>${escapeHtml(config.distanceLabel)}</span>
           <div class="unit-input-wrap">
-            <input type="number" inputmode="decimal" min="0" max="999" step="${escapeAttr(config.distanceStep)}" data-edit-cardio-distance value="${escapeAttr(distanceValue)}" placeholder="${escapeAttr(config.distancePlaceholder)}" data-numeric-assist data-numeric-label="${escapeAttr(config.distanceLabel)}" data-numeric-step="${escapeAttr(config.distanceStep)}" data-numeric-min="0" data-numeric-max="999" />
+            <input type="number" inputmode="decimal" min="0" max="999" step="${escapeAttr(config.distanceStep)}" data-edit-cardio-distance value="${escapeAttr(distanceValue)}" placeholder="${escapeAttr(config.distancePlaceholder)}" />
             <em>${escapeHtml(config.distanceUnit)}</em>
           </div>
         </label>
         <label class="edit-field">
           <span>${escapeHtml(config.speedLabel)}</span>
           <div class="unit-input-wrap">
-            <input type="number" inputmode="decimal" min="0" max="300" step="${escapeAttr(config.speedStep)}" data-edit-cardio-speed value="${escapeAttr(speedValue)}" placeholder="${escapeAttr(config.speedPlaceholder)}" data-numeric-assist data-numeric-label="${escapeAttr(config.speedLabel)}" data-numeric-step="${escapeAttr(config.speedStep)}" data-numeric-min="0" data-numeric-max="300" />
+            <input type="number" inputmode="decimal" min="0" max="300" step="${escapeAttr(config.speedStep)}" data-edit-cardio-speed value="${escapeAttr(speedValue)}" placeholder="${escapeAttr(config.speedPlaceholder)}" />
             <em>${escapeHtml(config.speedUnit)}</em>
           </div>
         </label>
         <label class="edit-field">
           <span>カロリー</span>
           <div class="unit-input-wrap">
-            <input type="number" inputmode="numeric" min="0" max="5000" step="1" data-edit-cardio-calories value="${escapeAttr(caloriesValue)}" placeholder="250" data-numeric-assist data-numeric-label="カロリー" data-numeric-step="1" data-numeric-min="0" data-numeric-max="5000" />
+            <input type="number" inputmode="numeric" min="0" max="5000" step="1" data-edit-cardio-calories value="${escapeAttr(caloriesValue)}" placeholder="250" />
             <em>kcal</em>
           </div>
         </label>
         <label class="edit-field">
           <span>平均心拍</span>
           <div class="unit-input-wrap">
-            <input type="number" inputmode="numeric" min="0" max="240" step="1" data-edit-cardio-avg-hr value="${escapeAttr(normalizeCardioNumber(current.avgHeartRate, 0))}" placeholder="130" data-numeric-assist data-numeric-label="平均心拍" data-numeric-step="1" data-numeric-min="0" data-numeric-max="240" />
+            <input type="number" inputmode="numeric" min="0" max="240" step="1" data-edit-cardio-avg-hr value="${escapeAttr(normalizeCardioNumber(current.avgHeartRate, 0))}" placeholder="130" />
             <em>bpm</em>
           </div>
         </label>
         <label class="edit-field">
           <span>最大心拍</span>
           <div class="unit-input-wrap">
-            <input type="number" inputmode="numeric" min="0" max="240" step="1" data-edit-cardio-max-hr value="${escapeAttr(normalizeCardioNumber(current.maxHeartRate, 0))}" placeholder="160" data-numeric-assist data-numeric-label="最大心拍" data-numeric-step="1" data-numeric-min="0" data-numeric-max="240" />
+            <input type="number" inputmode="numeric" min="0" max="240" step="1" data-edit-cardio-max-hr value="${escapeAttr(normalizeCardioNumber(current.maxHeartRate, 0))}" placeholder="160" />
             <em>bpm</em>
           </div>
         </label>
@@ -5116,11 +5179,11 @@ function renderWorkoutEditSetList() {
         <div class="edit-compact-grid">
           <label class="edit-field">
             <span>重量</span>
-            <input class="metric-number-input" type="number" inputmode="decimal" min="0" max="300" step="0.1" data-edit-weight value="${escapeAttr(formatWeightRollValue(weight))}" data-numeric-assist data-numeric-label="重量" data-numeric-step="0.1" data-numeric-min="0" data-numeric-max="300" />
+            <input class="metric-number-input" type="number" inputmode="decimal" min="0" max="300" step="0.1" data-edit-weight value="${escapeAttr(formatWeightRollValue(weight))}" />
           </label>
           <label class="edit-field">
             <span>回数</span>
-            <input class="metric-number-input" type="number" inputmode="numeric" min="0" max="300" step="1" data-edit-reps value="${escapeAttr(formatRepsRollValue(reps))}" data-numeric-assist data-numeric-label="回数" data-numeric-step="1" data-numeric-min="0" data-numeric-max="300" />
+            <input class="metric-number-input" type="number" inputmode="numeric" min="0" max="300" step="1" data-edit-reps value="${escapeAttr(formatRepsRollValue(reps))}" />
           </label>
           <label class="edit-field">
             <span>実施</span>
@@ -5651,6 +5714,8 @@ function updateLoginView() {
   loginDescription.classList.add("hidden");
   registerNicknameWrap?.classList.toggle("hidden", !isRegisterMode);
   registerPasswordConfirmWrap?.classList.toggle("hidden", !isRegisterMode);
+  showForgotPasswordBtn?.classList.toggle("hidden", isRegisterMode || loggedIn);
+  if (isRegisterMode || loggedIn) setForgotPasswordMode(false);
   loginAdminNote?.classList.add("hidden");
   showLoginModeBtn?.classList.toggle("active-tab", !isRegisterMode);
   showRegisterModeBtn?.classList.toggle("active-tab", isRegisterMode);
@@ -5668,6 +5733,9 @@ function updateLoginView() {
     loginPasswordInput.value = "";
     if (registerNicknameInput && !isRegisterMode) registerNicknameInput.value = "";
     if (registerPasswordConfirmInput) registerPasswordConfirmInput.value = "";
+    if (forgotPasswordUsernameInput && !forgotPasswordUsernameInput.value) {
+      forgotPasswordUsernameInput.value = normalizeUsername(loginNameInput.value);
+    }
     if (!isRegisterMode) requestAnimationFrame(() => selectInputText(loginPasswordInput));
   }
 }
@@ -5704,6 +5772,49 @@ function changeCurrentUserPassword() {
   saveUserAccounts(accounts);
   clearPasswordSettingsForm();
   alert("パスワードを変更しました。");
+}
+
+function resetForgottenPassword() {
+  const username = normalizeUsername(forgotPasswordUsernameInput?.value || loginNameInput?.value || "");
+  const nickname = normalizeNickname(forgotPasswordNicknameInput?.value, username);
+  const nextPassword = String(forgotNewPasswordInput?.value || "");
+  const confirmPassword = String(forgotConfirmPasswordInput?.value || "");
+  if (!username || !nickname || !nextPassword || !confirmPassword) {
+    alert("ユーザー名、ニックネーム、新しいパスワードを入力してください。");
+    return;
+  }
+  if (isAdminUser(username)) {
+    alert("admini のパスワード再設定はこの画面からはできません。");
+    return;
+  }
+  if (nextPassword !== confirmPassword) {
+    alert("新しいパスワードが一致しません。");
+    forgotConfirmPasswordInput?.focus();
+    return;
+  }
+
+  const accounts = getUserAccounts();
+  const account = accounts[username];
+  if (!account) {
+    alert("そのユーザー名は見つかりません。");
+    forgotPasswordUsernameInput?.focus();
+    return;
+  }
+  if (normalizeNickname(account.nickname, username) !== nickname) {
+    alert("ニックネームが一致しません。");
+    forgotPasswordNicknameInput?.focus();
+    return;
+  }
+
+  accounts[username] = {
+    ...account,
+    password: nextPassword
+  };
+  saveUserAccounts(accounts);
+  if (loginNameInput) loginNameInput.value = username;
+  if (loginPasswordInput) loginPasswordInput.value = "";
+  setForgotPasswordMode(false);
+  alert("パスワードを再設定しました。新しいパスワードでログインしてください。");
 }
 
 function submitLogin() {
@@ -5756,11 +5867,20 @@ function bindEvents() {
   loginSubmitBtn.addEventListener("click", submitLogin);
   showLoginModeBtn?.addEventListener("click", () => setAuthMode("login"));
   showRegisterModeBtn?.addEventListener("click", () => setAuthMode("register"));
+  showForgotPasswordBtn?.addEventListener("click", () => setForgotPasswordMode(forgotPasswordWrap?.classList.contains("hidden")));
   toggleLoginPasswordBtn?.addEventListener("click", () => togglePasswordFieldVisibility(loginPasswordInput, toggleLoginPasswordBtn));
   toggleRegisterPasswordConfirmBtn?.addEventListener("click", () => togglePasswordFieldVisibility(registerPasswordConfirmInput, toggleRegisterPasswordConfirmBtn));
-  [loginNameInput, registerNicknameInput, loginPasswordInput, registerPasswordConfirmInput].filter(Boolean).forEach(input => {
+  toggleForgotNewPasswordBtn?.addEventListener("click", () => togglePasswordFieldVisibility(forgotNewPasswordInput, toggleForgotNewPasswordBtn));
+  toggleForgotConfirmPasswordBtn?.addEventListener("click", () => togglePasswordFieldVisibility(forgotConfirmPasswordInput, toggleForgotConfirmPasswordBtn));
+  resetForgotPasswordBtn?.addEventListener("click", resetForgottenPassword);
+  [loginNameInput, registerNicknameInput, loginPasswordInput, registerPasswordConfirmInput, forgotPasswordUsernameInput, forgotPasswordNicknameInput, forgotNewPasswordInput, forgotConfirmPasswordInput].filter(Boolean).forEach(input => {
     input.addEventListener("keydown", event => {
-      if (event.key === "Enter") submitLogin();
+      if (event.key !== "Enter") return;
+      if (!forgotPasswordWrap?.classList.contains("hidden") && forgotPasswordWrap?.contains(event.target)) {
+        resetForgottenPassword();
+        return;
+      }
+      submitLogin();
     });
   });
 

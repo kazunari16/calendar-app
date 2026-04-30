@@ -88,6 +88,26 @@ body {
   white-space: nowrap;
 }
 
+.login-secondary-btn {
+  width: 100%;
+  margin-top: 10px;
+}
+
+.forgot-password-wrap {
+  margin-top: 12px;
+  padding: 12px;
+  border: 1px solid var(--settings-frame, var(--line));
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--login-input-bg) 92%, transparent);
+}
+
+.forgot-password-title {
+  margin: 0 0 10px;
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--text);
+}
+
 .login-badge {
   display: inline-flex;
   align-items: center;
@@ -2029,12 +2049,12 @@ body {
 }
 
 .record-mode .view.active .card {
-  padding-top: 80px;
+  padding-top: calc(var(--record-top-offset, 72px) + 64px);
 }
 
 .record-mode .view.active .top-row {
   position: fixed;
-  top: calc(env(safe-area-inset-top, 0) + var(--record-top-offset, 72px));
+  top: var(--record-top-offset, 72px);
   left: max(8px, calc((100vw - 1040px) / 2 + 14px));
   right: max(8px, calc((100vw - 1040px) / 2 + 14px));
   z-index: 125;
@@ -2957,7 +2977,11 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
   }
 
   .record-mode .view.active .top-row {
-    top: calc(env(safe-area-inset-top, 0) + var(--record-top-offset, 112px));
+    top: var(--record-top-offset, 112px);
+  }
+
+  .record-mode .view.active .card {
+    padding-top: calc(var(--record-top-offset, 112px) + 64px);
   }
 
   .header-actions {
@@ -3399,9 +3423,9 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
   min-height: 42px;
   display: grid;
   align-items: center;
-  border-color: #374151;
-  background: #0f141d;
-  color: #fb923c;
+  border-color: var(--workout-line);
+  background: var(--workout-field);
+  color: var(--workout-accent);
 }
 
 #view-workout-input .roll-field-btn,
@@ -4269,6 +4293,7 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
 #view-workout .workout-history-simple-title,
 #view-workout .workout-log-item-title,
 #view-workout .workout-detail-title,
+#view-workout .workout-history-detail-title,
 #view-workout .count-badge {
   color: var(--workout-text) !important;
 }
@@ -4276,8 +4301,25 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
 #view-workout .weekday-row div,
 #view-workout .workout-log-item-body,
 #view-workout .workout-history-simple-body,
+#view-workout .workout-history-detail-body,
 #view-workout .empty-text {
   color: var(--workout-subtext) !important;
+}
+
+#view-workout .workout-history-detail-wrap {
+  border-top-color: var(--workout-line) !important;
+}
+
+#view-workout .workout-history-detail-row {
+  border-color: var(--workout-line) !important;
+  background: var(--workout-card-alt) !important;
+}
+
+#view-workout .edit-workout-btn {
+  border-color: var(--workout-frame) !important;
+  background: var(--workout-fill-alt) !important;
+  color: var(--workout-text) !important;
+  box-shadow: none !important;
 }
 
 #view-workout .count-badge,

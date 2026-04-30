@@ -45,6 +45,33 @@
         </div>
       </div>
       <button id="loginSubmitBtn" class="primary-btn" type="button">ログイン</button>
+      <button id="showForgotPasswordBtn" class="sub-btn login-secondary-btn" type="button">パスワードを忘れた場合</button>
+      <div id="forgotPasswordWrap" class="forgot-password-wrap hidden">
+        <p class="forgot-password-title">パスワード再設定</p>
+        <div class="form-group">
+          <label for="forgotPasswordUsernameInput">ユーザー名</label>
+          <input id="forgotPasswordUsernameInput" type="text" autocomplete="username" placeholder="ユーザー名" />
+        </div>
+        <div class="form-group">
+          <label for="forgotPasswordNicknameInput">ニックネーム</label>
+          <input id="forgotPasswordNicknameInput" type="text" autocomplete="nickname" placeholder="ニックネーム" />
+        </div>
+        <div class="form-group">
+          <label for="forgotNewPasswordInput">新しいパスワード</label>
+          <div class="password-input-wrap">
+            <input id="forgotNewPasswordInput" type="password" autocomplete="new-password" placeholder="新しいパスワード" />
+            <button id="toggleForgotNewPasswordBtn" class="sub-btn password-toggle-btn" type="button" aria-label="新しいパスワードを表示">表示</button>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="forgotConfirmPasswordInput">新しいパスワード確認</label>
+          <div class="password-input-wrap">
+            <input id="forgotConfirmPasswordInput" type="password" autocomplete="new-password" placeholder="もう一度入力" />
+            <button id="toggleForgotConfirmPasswordBtn" class="sub-btn password-toggle-btn" type="button" aria-label="確認用の新しいパスワードを表示">表示</button>
+          </div>
+        </div>
+        <button id="resetForgotPasswordBtn" class="primary-btn" type="button">再設定する</button>
+      </div>
     </section>
   </main>
   <div class="app-shell">
